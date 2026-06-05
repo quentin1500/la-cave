@@ -6,7 +6,7 @@
 // les valeurs sensibles (ce fichier est dans .gitignore).
 
 const CONFIG = {
-  SHEETS_API_URL:      '__SHEETS_API_URL__',
+  SHEETS_API_URL:      '__SHEETS_API_URL__', 
   ADMIN_PASSWORD_HASH: '__ADMIN_PASSWORD_HASH__',
 
   OFF_API_BASE:   'https://world.openfoodfacts.org',

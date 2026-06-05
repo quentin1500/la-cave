@@ -21,6 +21,9 @@ const AdminApp = (() => {
     // Formulaire de connexion
     document.getElementById('login-form').addEventListener('submit', handleLogin_);
 
+    // Formulaire d'ajout / édition de bouteille
+    document.getElementById('bottle-form').addEventListener('submit', handleSubmit);
+
     // Fermeture du modal formulaire via le fond
     document.getElementById('form-backdrop').addEventListener('click', hideForm);
 

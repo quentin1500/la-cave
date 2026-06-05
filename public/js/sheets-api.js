@@ -61,7 +61,7 @@ const SheetsAPI = (() => {
   async function post_(payload) {
     // Content-Type text/plain évite le preflight CORS avec Apps Script.
     // Voir ADR-002 pour l'explication complète.
-    payload.apiKey = Auth.getApiKey();
+    payload.apiKey = Auth.getToken();
 
     const response = await fetch(CONFIG.SHEETS_API_URL, {
       method:   'POST',

@@ -38,12 +38,13 @@ const Auth = (() => {
   // ── Session ───────────────────────────────────────────────────────────────
 
   /**
-   * Démarre la session admin en stockant la clé API en sessionStorage.
+   * Démarre la session admin en stockant le hash du mot de passe en sessionStorage.
+   * Ce hash sert à la fois de jeton de session et de token d'API pour les écritures.
    * La session est effacée automatiquement à la fermeture de l'onglet.
-   * @param {string} apiKey
+   * @param {string} passwordHash  Hash SHA-256 du mot de passe admin
    */
-  function login(apiKey) {
-    sessionStorage.setItem(SESSION_KEY, apiKey);
+  function login(passwordHash) {
+    sessionStorage.setItem(SESSION_KEY, passwordHash);
   }
 
   /** Efface la session admin. */
@@ -57,12 +58,13 @@ const Auth = (() => {
   }
 
   /**
-   * Retourne la clé API stockée en session (pour les requêtes d'écriture).
+   * Retourne le token de session (hash SHA-256 du mot de passe) utilisé pour
+   * authentifier les requêtes d'écriture vers Apps Script.
    * @returns {string|null}
    */
-  function getApiKey() {
+  function getToken() {
     return sessionStorage.getItem(SESSION_KEY);
   }
 
-  return { hashPassword, verifyPassword, login, logout, isLoggedIn, getApiKey };
+  return { hashPassword, verifyPassword, login, logout, isLoggedIn, getToken };
 })();

@@ -1,0 +1,258 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Générateur de hash — La Cave</title>
+  <style>
+    :root {
+      --bg: #0f0709;
+      --card: #2a1316;
+      --border: #3D2025;
+      --text: #F0EAE0;
+      --muted: #9E8A7E;
+      --gold: #C8A035;
+      --bordeaux: #7B2D3E;
+      --success: #4A9E6E;
+      --error: #C84040;
+      --font: 'Segoe UI', system-ui, sans-serif;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: var(--font);
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 1rem;
+    }
+    .card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 2.5rem 2rem;
+      width: 100%;
+      max-width: 480px;
+      box-shadow: 0 16px 64px rgba(0,0,0,.6);
+    }
+    h1 {
+      font-size: 1.5rem;
+      font-weight: 700;
+      margin-bottom: 0.375rem;
+    }
+    .subtitle {
+      font-size: 0.875rem;
+      color: var(--muted);
+      margin-bottom: 2rem;
+      line-height: 1.5;
+    }
+    label {
+      display: block;
+      font-size: 0.8125rem;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: .06em;
+      margin-bottom: .5rem;
+      font-weight: 500;
+    }
+    input[type="password"], input[type="text"] {
+      width: 100%;
+      background: #19090d;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      color: var(--text);
+      padding: .75rem 1rem;
+      font-family: var(--font);
+      font-size: 1rem;
+      margin-bottom: 1rem;
+      transition: border-color .15s;
+    }
+    input:focus { outline: none; border-color: var(--bordeaux); box-shadow: 0 0 0 3px rgba(123,45,62,.2); }
+    .show-row {
+      display: flex;
+      align-items: center;
+      gap: .5rem;
+      margin-bottom: 1.25rem;
+    }
+    .show-row input[type="checkbox"] { width: auto; margin: 0; cursor: pointer; accent-color: var(--bordeaux); }
+    .show-row label { margin: 0; cursor: pointer; font-size: .8125rem; text-transform: none; letter-spacing: 0; }
+    button {
+      width: 100%;
+      background: var(--bordeaux);
+      color: #fff;
+      border: none;
+      border-radius: 8px;
+      padding: .75rem 1.25rem;
+      font-family: var(--font);
+      font-size: .9375rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background .15s;
+      margin-bottom: 1.5rem;
+    }
+    button:hover { background: #9B4055; }
+    button:disabled { opacity: .5; cursor: not-allowed; }
+    .result-section { display: none; }
+    .result-section.visible { display: block; }
+    .result-label {
+      font-size: .75rem;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: .07em;
+      margin-bottom: .5rem;
+    }
+    .hash-value {
+      background: #19090d;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: .75rem 1rem;
+      font-family: 'Consolas', 'Courier New', monospace;
+      font-size: .8125rem;
+      color: var(--gold);
+      word-break: break-all;
+      line-height: 1.6;
+      margin-bottom: .75rem;
+    }
+    .copy-btn {
+      width: auto;
+      padding: .5rem 1.25rem;
+      font-size: .8125rem;
+      margin-bottom: 1.5rem;
+      background: #19090d;
+      border: 1px solid var(--border);
+      color: var(--text);
+    }
+    .copy-btn:hover { background: var(--card); border-color: var(--bordeaux); }
+    .copy-btn.copied { background: rgba(74,158,110,.15); border-color: var(--success); color: var(--success); }
+    .notice {
+      background: rgba(200,160,53,.08);
+      border: 1px solid rgba(200,160,53,.3);
+      border-radius: 8px;
+      padding: 1rem;
+      font-size: .8125rem;
+      color: var(--gold);
+      line-height: 1.6;
+    }
+    .notice strong { font-weight: 600; }
+    .divider { border: none; border-top: 1px solid var(--border); margin: 1.5rem 0; }
+    code {
+      background: rgba(255,255,255,.06);
+      border-radius: 4px;
+      padding: 1px 5px;
+      font-family: 'Consolas', monospace;
+      font-size: .85em;
+    }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <h1>🔐 Générateur de hash</h1>
+    <p class="subtitle">
+      Outil local pour générer le hash SHA-256 de votre mot de passe admin.<br>
+      Ce hash sera stocké comme secret GitHub (<code>ADMIN_PASSWORD_HASH</code>).
+    </p>
+
+    <label for="pwd-input">Mot de passe admin</label>
+    <input type="password" id="pwd-input" placeholder="Saisir votre mot de passe" autocomplete="off">
+
+    <div class="show-row">
+      <input type="checkbox" id="show-pwd" onchange="toggleVisibility()">
+      <label for="show-pwd">Afficher le mot de passe</label>
+    </div>
+
+    <button onclick="generateHash()" id="gen-btn">Générer le hash SHA-256</button>
+
+    <div class="result-section" id="result-section">
+      <div class="result-label">Hash SHA-256 (hexadécimal)</div>
+      <div class="hash-value" id="hash-output" role="status" aria-live="polite"></div>
+      <button class="copy-btn" id="copy-btn" onclick="copyHash()">📋 Copier le hash</button>
+
+      <hr class="divider">
+
+      <div class="notice">
+        <strong>Étapes suivantes :</strong><br>
+        1. Copiez ce hash.<br>
+        2. Dans GitHub → Settings → Secrets → Actions, créez le secret <code>ADMIN_PASSWORD_HASH</code> avec cette valeur.<br>
+        3. Supprimez l'historique de cet outil de votre navigateur si vous le souhaitez.
+      </div>
+    </div>
+  </div>
+
+  <script>
+    async function generateHash() {
+      const input = document.getElementById('pwd-input').value;
+      const btn   = document.getElementById('gen-btn');
+
+      if (!input) {
+        alert('Veuillez saisir un mot de passe.');
+        return;
+      }
+      if (input.length < 8) {
+        alert('Le mot de passe doit faire au moins 8 caractères.');
+        return;
+      }
+
+      btn.disabled    = true;
+      btn.textContent = 'Calcul en cours…';
+
+      try {
+        const encoder    = new TextEncoder();
+        const data       = encoder.encode(input);
+        const hashBuffer = await crypto.subtle.digest('SHA-256', data);
+        const hashHex    = Array.from(new Uint8Array(hashBuffer))
+          .map(b => b.toString(16).padStart(2, '0'))
+          .join('');
+
+        document.getElementById('hash-output').textContent = hashHex;
+        document.getElementById('result-section').classList.add('visible');
+        document.getElementById('copy-btn').className = 'copy-btn';
+        document.getElementById('copy-btn').textContent = '📋 Copier le hash';
+      } catch (err) {
+        alert('Erreur lors du calcul : ' + err.message);
+      } finally {
+        btn.disabled    = false;
+        btn.textContent = 'Générer le hash SHA-256';
+      }
+    }
+
+    function toggleVisibility() {
+      const input = document.getElementById('pwd-input');
+      input.type  = document.getElementById('show-pwd').checked ? 'text' : 'password';
+    }
+
+    async function copyHash() {
+      const hash = document.getElementById('hash-output').textContent;
+      const btn  = document.getElementById('copy-btn');
+
+      try {
+        await navigator.clipboard.writeText(hash);
+        btn.textContent = '✅ Copié !';
+        btn.classList.add('copied');
+        setTimeout(() => {
+          btn.textContent = '📋 Copier le hash';
+          btn.classList.remove('copied');
+        }, 2500);
+      } catch {
+        // Fallback pour les navigateurs sans accès clipboard
+        const ta  = document.createElement('textarea');
+        ta.value  = hash;
+        ta.style.position = 'fixed';
+        ta.style.opacity  = '0';
+        document.body.appendChild(ta);
+        ta.select();
+        document.execCommand('copy');
+        document.body.removeChild(ta);
+        btn.textContent = '✅ Copié !';
+        setTimeout(() => { btn.textContent = '📋 Copier le hash'; }, 2500);
+      }
+    }
+
+    // Générer en appuyant sur Entrée
+    document.getElementById('pwd-input').addEventListener('keydown', e => {
+      if (e.key === 'Enter') generateHash();
+    });
+  </script>
+</body>
+</html>

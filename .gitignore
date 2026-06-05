@@ -1,0 +1,22 @@
+# Fichiers générés / locaux
+node_modules/
+.env
+.env.local
+
+# Config locale (ne jamais committer les vraies valeurs)
+public/js/config.local.js
+
+# OS
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Éditeurs
+.vscode/settings.json
+*.swp
+*.swo
+*~
+
+# Logs
+*.log
+npm-debug.log*

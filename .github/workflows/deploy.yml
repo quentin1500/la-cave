@@ -1,0 +1,40 @@
+name: Déploiement GitHub Pages
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Vérification des secrets
+        run: |
+          if [ -z "${{ secrets.SHEETS_API_URL }}" ]; then
+            echo "⚠️  SHEETS_API_URL non configuré — le site fonctionnera en mode démonstration"
+          fi
+          if [ -z "${{ secrets.ADMIN_PASSWORD_HASH }}" ]; then
+            echo "⚠️  ADMIN_PASSWORD_HASH non configuré — l'interface admin sera inaccessible"
+          fi
+
+      - name: Injection de la configuration
+        run: |
+          # Remplace les placeholders dans config.js par les vraies valeurs des secrets
+          sed -i "s|__SHEETS_API_URL__|${{ secrets.SHEETS_API_URL }}|g" public/js/config.js
+          sed -i "s|__ADMIN_PASSWORD_HASH__|${{ secrets.ADMIN_PASSWORD_HASH }}|g" public/js/config.js
+          sed -i "s|__SHEETS_API_KEY__|${{ secrets.SHEETS_API_KEY }}|g" public/js/config.js
+
+      - name: Déploiement vers gh-pages
+        uses: peaceiris/actions-gh-pages@v3
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ./public
+          commit_message: "deploy: ${{ github.sha }}"
+          force_orphan: true

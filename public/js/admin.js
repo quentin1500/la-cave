@@ -51,9 +51,11 @@ const AdminApp = (() => {
     submitEl.textContent = 'Vérification…';
 
     try {
-      const ok = await Auth.verifyPassword(password, CONFIG.ADMIN_PASSWORD_HASH);
-      if (ok) {
-        Auth.login(CONFIG.SHEETS_API_KEY);
+      // Calcul du hash du mot de passe saisi
+      const hash = await Auth.hashPassword(password);
+      if (hash === CONFIG.ADMIN_PASSWORD_HASH) {
+        // Le hash lui-même est utilisé comme token d'API — plus de secret distinct
+        Auth.login(hash);
         showApp_();
       } else {
         errorEl.classList.remove('hidden');

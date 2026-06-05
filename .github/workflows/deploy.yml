@@ -29,7 +29,6 @@ jobs:
           # Remplace les placeholders dans config.js par les vraies valeurs des secrets
           sed -i "s|__SHEETS_API_URL__|${{ secrets.SHEETS_API_URL }}|g" public/js/config.js
           sed -i "s|__ADMIN_PASSWORD_HASH__|${{ secrets.ADMIN_PASSWORD_HASH }}|g" public/js/config.js
-          sed -i "s|__SHEETS_API_KEY__|${{ secrets.SHEETS_API_KEY }}|g" public/js/config.js
 
       - name: Déploiement vers gh-pages
         uses: peaceiris/actions-gh-pages@v3

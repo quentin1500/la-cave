@@ -179,12 +179,14 @@ function getSheet_() {
 
 function validateApiKey_(key) {
   if (!key) return false;
-  var storedKey = PropertiesService.getScriptProperties().getProperty('API_KEY');
-  if (!storedKey) {
-    Logger.log('⚠️  API_KEY non configurée dans les Script Properties');
+  // Le client envoie le hash SHA-256 du mot de passe admin.
+  // Apps Script compare ce hash à celui stocké dans les Script Properties.
+  var storedHash = PropertiesService.getScriptProperties().getProperty('ADMIN_PASSWORD_HASH');
+  if (!storedHash) {
+    Logger.log('⚠️  ADMIN_PASSWORD_HASH non configuré dans les Script Properties');
     return false;
   }
-  return key === storedKey;
+  return key === storedHash;
 }
 
 function buildResponse_(data) {
@@ -197,11 +199,14 @@ function buildResponse_(data) {
 
 /**
  * Exécuter cette fonction une fois depuis l'éditeur Apps Script
- * pour configurer la clé API.
- * Remplacer 'VOTRE_CLE_API_ICI' par votre vraie clé.
+ * pour configurer le hash du mot de passe admin.
+ *
+ * 1. Générer le hash SHA-256 de votre mot de passe admin via tools/generate-hash.html
+ * 2. Remplacer 'VOTRE_HASH_ICI' par la valeur obtenue (64 caractères hexadécimaux)
+ * 3. Exécuter cette fonction depuis l'éditeur Apps Script
  */
-function setApiKey() {
-  var key = 'VOTRE_CLE_API_ICI';
-  PropertiesService.getScriptProperties().setProperty('API_KEY', key);
-  Logger.log('Clé API configurée : ' + key);
+function setAdminPasswordHash() {
+  var hash = 'VOTRE_HASH_ICI'; // ← remplacer par votre hash SHA-256 (64 caractères hex)
+  PropertiesService.getScriptProperties().setProperty('ADMIN_PASSWORD_HASH', hash);
+  Logger.log('Hash admin configuré : ' + hash);
 }

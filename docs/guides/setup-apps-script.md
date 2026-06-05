@@ -24,20 +24,21 @@ Ce guide explique comment connecter l'application La Cave à un Google Sheet via
 
 ---
 
-## Étape 3 — Configurer la clé API
+## Étape 3 — Configurer le hash du mot de passe admin
 
-La clé API protège les opérations d'écriture (ajout, modification, suppression).
+Apps Script doit connaître le hash SHA-256 de votre mot de passe pour valider les opérations d'écriture.
 
-1. Dans l'éditeur Apps Script, **sélectionner la fonction `setApiKey`** dans le menu déroulant des fonctions
-2. Modifier la valeur de la variable `key` dans cette fonction :
+1. **Générer le hash** : ouvrir `tools/generate-hash.html` localement dans votre navigateur et copier le hash produit
+2. Dans l'éditeur Apps Script, **sélectionner la fonction `setAdminPasswordHash`** dans le menu déroulant des fonctions
+3. Remplacer `'VOTRE_HASH_ICI'` par votre hash (64 caractères hexadécimaux) :
    ```javascript
-   var key = 'VOTRE_CLE_API_ICI'; // ← remplacer par une chaîne aléatoire forte
+   var hash = 'a1b2c3d4e5f6...'; // ← coller votre hash SHA-256 ici
    ```
-3. Exemple de clé solide : `lc-a8f3k2m9p7q1x5v`
 4. Cliquer sur **Exécuter** (▶)
 5. Autoriser les permissions demandées (lecture/écriture sur le Spreadsheet)
 
-> ⚠️ **Notez cette clé** — vous en aurez besoin pour la configurer comme secret GitHub (`SHEETS_API_KEY`).
+> ⚠️ **Ce hash doit être identique** à celui configuré comme secret GitHub `ADMIN_PASSWORD_HASH`.  
+> C'est le hash SHA-256 de votre mot de passe admin — il joue le double rôle d'identifiant de session *et* de clé API.
 
 ---
 

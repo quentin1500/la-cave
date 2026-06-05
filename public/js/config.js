@@ -6,11 +6,10 @@
 // les valeurs sensibles (ce fichier est dans .gitignore).
 
 const CONFIG = {
-  SHEETS_API_URL:       '__SHEETS_API_URL__',
-  ADMIN_PASSWORD_HASH:  '__ADMIN_PASSWORD_HASH__',
-  SHEETS_API_KEY:       '__SHEETS_API_KEY__',
+  SHEETS_API_URL:      '__SHEETS_API_URL__',
+  ADMIN_PASSWORD_HASH: '__ADMIN_PASSWORD_HASH__',
 
-  OFF_API_BASE:  'https://world.openfoodfacts.org',
+  OFF_API_BASE:   'https://world.openfoodfacts.org',
   OFF_USER_AGENT: 'LaCave/1.0',
 
   APP_NAME: 'La Cave',

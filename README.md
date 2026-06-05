@@ -22,8 +22,8 @@ Consultez votre collection, gérez les emplacements, suivez vos acquisitions.
 | **Hébergement** | GitHub Pages |
 | **Base de données** | Google Sheets via Apps Script (API REST) |
 | **Enrichissement** | API OpenFoodFacts |
-| **Auth admin** | Hash SHA-256 (côté client) + clé API pour les écritures |
-| **Secrets** | GitHub Actions injecte les valeurs au déploiement |
+| **Auth admin** | Hash SHA-256 (côté client) — le hash sert aussi de token d'API pour les écritures |
+| **Secrets** | GitHub Actions injecte les valeurs au déploiement (2 secrets : `SHEETS_API_URL` + `ADMIN_PASSWORD_HASH`) |
 
 ---
 

@@ -77,6 +77,20 @@ Vous devez obtenir une réponse JSON :
 ```
 (tableau vide si aucune bouteille n'a encore été ajoutée)
 
+Pour vérifier que l'API supporte l'archivage et le layout :
+
+- Tester la récupération du layout (GET) :
+
+```
+VOTRE_URL?action=getLayout
+```
+
+La réponse vaut `{"layout": null}` si aucun layout n'a été sauvegardé.
+
+- Tester l'archivage : appeler l'endpoint `POST` avec `action=delete` et un `id` (le serveur archive la ligne au lieu de la supprimer). Vous pouvez fournir `comment` dans le payload pour enregistrer un commentaire d'archivage.
+
+---
+
 ---
 
 ## Mettre à jour le code Apps Script

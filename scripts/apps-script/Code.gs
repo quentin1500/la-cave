@@ -9,7 +9,9 @@ var HEADERS = [
   'id', 'type', 'producteur', 'cuvee', 'millesime', 'appellation',
   'region', 'pays', 'cepages', 'volume', 'degre_alcool', 'code_barres',
   'photo_url', 'rang', 'colonne', 'quantite', 'date_achat', 'prix_achat',
-  'valeur_estimee', 'notes_personnelles', 'date_creation', 'date_modification'
+  'valeur_estimee', 'notes_personnelles', 'date_creation', 'date_modification',
+  // Archivage
+  'archived', 'archived_at', 'archive_comment'
 ];
 
 // ── Handlers HTTP ─────────────────────────────────────────────────────────────
@@ -54,7 +56,18 @@ function doPost(e) {
 
     if (action === 'delete') {
       if (!body.id) return buildResponse_({ error: 'Champ id manquant' }, 400);
-      return buildResponse_(deleteBottle_(body.id));
+      // Support legacy delete -> now archive
+      return buildResponse_(deleteBottle_(body.id, body.comment || ''));
+    }
+
+    if (action === 'getLayout') {
+      return buildResponse_(getLayout_());
+    }
+
+    if (action === 'saveLayout') {
+      if (!body.data) return buildResponse_({ error: 'Champ data manquant' }, 400);
+      if (!validateApiKey_(body.apiKey)) return buildResponse_({ error: 'Non autorisé — clé API invalide' }, 401);
+      return buildResponse_(saveLayout_(body.data));
     }
 
     return buildResponse_({ error: 'Action non reconnue : ' + action }, 400);
@@ -139,6 +152,7 @@ function updateBottle_(id, data) {
 }
 
 function deleteBottle_(id) {
+  // Archive la bouteille au lieu de la supprimer physiquement
   var sheet = getSheet_();
   var sheetData = sheet.getDataRange().getValues();
   var headers = sheetData[0];
@@ -146,14 +160,47 @@ function deleteBottle_(id) {
 
   if (idIndex === -1) throw new Error('Colonne id introuvable');
 
+  var archivedIndex = headers.indexOf('archived');
+  var archivedAtIndex = headers.indexOf('archived_at');
+  var archiveCommentIndex = headers.indexOf('archive_comment');
+  var dateModifIndex = headers.indexOf('date_modification');
+
   for (var i = 1; i < sheetData.length; i++) {
     if (String(sheetData[i][idIndex]) === String(id)) {
-      sheet.deleteRow(i + 1);
+      var now = new Date().toISOString();
+      var row = sheetData[i].slice();
+      if (archivedIndex !== -1) row[archivedIndex] = true;
+      if (archivedAtIndex !== -1) row[archivedAtIndex] = now;
+      if (archiveCommentIndex !== -1) row[archiveCommentIndex] = arguments[1] || '';
+      if (dateModifIndex !== -1) row[dateModifIndex] = now;
+
+      sheet.getRange(i + 1, 1, 1, row.length).setValues([row]);
       return { success: true, id: id };
     }
   }
 
   return { error: 'Bouteille introuvable : ' + id };
+}
+
+// ── Layout (plan de la cave) ─────────────────────────────────────────────
+function getLayout_() {
+  var layout = PropertiesService.getScriptProperties().getProperty('CAVE_LAYOUT');
+  if (!layout) return { layout: null };
+  try {
+    return { layout: JSON.parse(layout) };
+  } catch (e) {
+    return { layout: null };
+  }
+}
+
+function saveLayout_(data) {
+  try {
+    var json = typeof data === 'string' ? data : JSON.stringify(data);
+    PropertiesService.getScriptProperties().setProperty('CAVE_LAYOUT', json);
+    return { success: true };
+  } catch (e) {
+    return { error: 'Impossible de sauvegarder le layout : ' + e.message };
+  }
 }
 
 // ── Utilitaires ───────────────────────────────────────────────────────────────

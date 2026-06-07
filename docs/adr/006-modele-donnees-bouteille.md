@@ -41,6 +41,20 @@ Bouteille
 ├─ notes_personnelles   Texte libre (impressions, accords, occasions)
 ├─ date_creation        Chaîne ISO 8601 datetime (auto-générée)
 └─ date_modification    Chaîne ISO 8601 datetime (auto-mise à jour)
+
+### Archivage
+
+Les bouteilles **ne sont pas supprimées** définitivement : elles sont archivées.
+Champs ajoutés :
+
+```
+archived           Boolean (true si archivée)
+archived_at        Chaîne ISO 8601 datetime de l'archivage
+archive_comment    Texte libre — commentaire ajouté lors de l'archivage
+```
+
+Conséquence : l'interface publique n'affiche pas les bouteilles archivées, mais
+l'historique est conservé et consultable via l'interface d'administration.
 ```
 
 ### Types normalisés

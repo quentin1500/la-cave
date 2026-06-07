@@ -51,5 +51,12 @@ Plusieurs niveaux de granularité sont possibles, du plus simple au plus complex
 | Plan de cave cliquable (zones SVG) | Excellent en Lot 2, mais over-engineering pour le Lot 1 |
 
 ## Évolution prévue (Lot 2)
-
 Introduction possible d'un champ `section` ou `armoire` si l'utilisateur possède plusieurs zones de stockage distinctes. Nécessitera un ADR de mise à jour.
+
+Dans le Lot 2 l'application introduit un plan de cave visuel :
+
+- Un **layout** représentant le plan (slots positionnés librement) est stocké côté serveur (Script Properties / Apps Script).
+- Chaque slot peut être un carré représentant un emplacement pour une bouteille, avec `x`, `y`, `size` et `id`.
+- Le modèle de bouteille peut référencer un `slot_id` optionnel pour lier une bouteille à un emplacement graphique.
+
+Pour rester rétrocompatible, `rang` et `colonne` restent supportés — le rendu visuel pourra utiliser le `slot_id` ou déduire une position à partir de `rang`/`colonne`.

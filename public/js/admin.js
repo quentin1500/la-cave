@@ -138,15 +138,143 @@ const AdminApp = (() => {
   }
 
   async function handleDelete(id) {
-    if (!confirm('Supprimer cette bouteille de façon définitive ?')) return;
+    // Demande de confirmation + commentaire d'archivage
+    if (!confirm('Archiver cette bouteille (elle sera retirée de l\'interface publique) ?')) return;
+    const comment = prompt('Commentaire d\'archivage (facultatif) :', '');
 
     try {
-      await SheetsAPI.deleteBottle(id);
-      notify_('Bouteille supprimée.', 'success');
+      await SheetsAPI.deleteBottle(id, comment || '');
+      notify_('Bouteille archivée.', 'success');
       await loadBottles();
     } catch (err) {
-      console.error('Erreur lors de la suppression :', err);
+      console.error('Erreur lors de l\'archivage :', err);
       notify_(`Erreur : ${err.message}`, 'error');
+    }
+  }
+
+  // ── Éditeur de layout (plan de la cave) ─────────────────────────────────
+  let _layout = null;
+  function openLayoutEditor() {
+    // Créer modal si nécessaire
+    let modal = document.getElementById('layout-modal');
+    if (!modal) {
+      modal = document.createElement('div');
+      modal.id = 'layout-modal';
+      modal.className = 'modal';
+      modal.innerHTML = `
+        <div class="modal__backdrop" id="layout-backdrop"></div>
+        <div class="modal__panel" id="layout-panel" style="width:90vw;max-width:1000px;">
+          <button class="modal__close" id="layout-close">✕</button>
+          <h2>Éditeur du plan de la cave</h2>
+          <div style="display:flex;gap:1rem;margin-top:0.5rem;">
+            <button id="layout-add-slot" class="btn btn--secondary">Ajouter un emplacement</button>
+            <button id="layout-save" class="btn btn--primary">Enregistrer</button>
+            <button id="layout-close-btn" class="btn btn--ghost">Fermer</button>
+          </div>
+          <div id="layout-canvas" style="position:relative;margin-top:1rem;height:520px;border:1px solid var(--c-border);background:#f8f8f8;overflow:auto"></div>
+        </div>
+      `;
+      document.body.appendChild(modal);
+      document.getElementById('layout-close').addEventListener('click', closeLayoutEditor);
+      document.getElementById('layout-close-btn').addEventListener('click', closeLayoutEditor);
+      document.getElementById('layout-add-slot').addEventListener('click', () => { addSlot_(); });
+      document.getElementById('layout-save').addEventListener('click', () => saveLayout_());
+      document.getElementById('layout-backdrop').addEventListener('click', closeLayoutEditor);
+    }
+
+    document.body.style.overflow = 'hidden';
+    modal.classList.remove('hidden');
+    loadLayout_();
+  }
+
+  function closeLayoutEditor() {
+    const modal = document.getElementById('layout-modal');
+    if (modal) modal.classList.add('hidden');
+    document.body.style.overflow = '';
+  }
+
+  async function loadLayout_() {
+    try {
+      const layout = CONFIG.isConfigured ? await SheetsAPI.getLayout() : null;
+      _layout = layout || { slots: [] };
+      renderLayout_();
+    } catch (err) {
+      console.error('Erreur chargement layout :', err);
+      _layout = { slots: [] };
+      renderLayout_();
+    }
+  }
+
+  function renderLayout_() {
+    const canvas = document.getElementById('layout-canvas');
+    canvas.innerHTML = '';
+    canvas.style.position = 'relative';
+    _layout.slots = _layout.slots || [];
+    _layout.slots.forEach(s => {
+      const el = document.createElement('div');
+      el.className = 'layout-slot';
+      el.style.position = 'absolute';
+      el.style.left = (s.x || 10) + 'px';
+      el.style.top  = (s.y || 10) + 'px';
+      el.style.width = (s.size || 60) + 'px';
+      el.style.height = (s.size || 60) + 'px';
+      el.style.background = 'white';
+      el.style.border = '2px solid var(--c-border)';
+      el.style.cursor = 'grab';
+      el.dataset.id = s.id || crypto.randomUUID();
+      el.textContent = s.label || '';
+      canvas.appendChild(el);
+      enableDrag_(el);
+    });
+  }
+
+  function addSlot_() {
+    const canvas = document.getElementById('layout-canvas');
+    const id = crypto.randomUUID();
+    const newSlot = { id, x: 10, y: 10, size: 60, label: '' };
+    _layout.slots.push(newSlot);
+    renderLayout_();
+  }
+
+  function enableDrag_(el) {
+    let startX, startY, origX, origY, dragging = false;
+    el.addEventListener('pointerdown', (e) => {
+      e.preventDefault();
+      el.setPointerCapture(e.pointerId);
+      startX = e.clientX; startY = e.clientY;
+      origX = parseInt(el.style.left, 10) || 0;
+      origY = parseInt(el.style.top, 10) || 0;
+      el.style.cursor = 'grabbing';
+      dragging = true;
+    });
+    document.addEventListener('pointermove', (e) => {
+      if (!dragging) return;
+      const dx = e.clientX - startX;
+      const dy = e.clientY - startY;
+      el.style.left = (origX + dx) + 'px';
+      el.style.top  = (origY + dy) + 'px';
+    });
+    document.addEventListener('pointerup', (e) => {
+      if (!dragging) return;
+      dragging = false;
+      el.style.cursor = 'grab';
+      // update model
+      const id = el.dataset.id;
+      const slot = _layout.slots.find(s => s.id === id);
+      if (slot) {
+        slot.x = parseInt(el.style.left, 10) || 0;
+        slot.y = parseInt(el.style.top, 10) || 0;
+      }
+    });
+  }
+
+  async function saveLayout_() {
+    try {
+      await SheetsAPI.saveLayout(_layout);
+      notify_('Plan de cave enregistré.', 'success');
+    } catch (err) {
+      console.error('Erreur sauvegarde layout :', err);
+      notify_('Erreur lors de l\'enregistrement du plan.', 'error');
     }
   }
 
@@ -487,6 +615,7 @@ const AdminApp = (() => {
     handleDelete,
     lookupOFF,
     loadBottles,
+    openLayoutEditor,
   };
 })();
 

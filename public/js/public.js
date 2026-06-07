@@ -51,6 +51,8 @@ const PublicApp = (() => {
     try {
       if (CONFIG.isConfigured) {
         allBottles = await SheetsAPI.getAllBottles();
+        // Ne pas afficher les bouteilles archivées dans l'interface publique
+        allBottles = allBottles.filter(b => !isArchived_(b));
       } else {
         allBottles = SAMPLE_BOTTLES;
         document.getElementById('demo-banner').classList.remove('hidden');
@@ -69,6 +71,13 @@ const PublicApp = (() => {
       document.getElementById('error-message').textContent =
         error.message || 'Impossible de charger les données.';
       showState_('error');
+    }
+    // Charger et afficher le layout si disponible
+    try {
+      const layout = CONFIG.isConfigured ? await SheetsAPI.getLayout() : null;
+      renderLayout_(layout);
+    } catch (err) {
+      console.warn('Impossible de charger le layout de la cave :', err);
     }
   }
 
@@ -235,6 +244,7 @@ const PublicApp = (() => {
             ${detailRow_('Cépage(s)',      bottle.cepages)}
             ${detailRow_('Volume',         bottle.volume   ? `${bottle.volume} ml`      : '')}
             ${detailRow_('Alcool',         bottle.degre_alcool ? `${bottle.degre_alcool}°` : '')}
+            ${detailRow_('Prix d\'achat', bottle.prix_achat ? formatPrice_(Number(bottle.prix_achat)) : '')}
           </div>
 
           <div class="modal__location" aria-label="Emplacement et quantité">
@@ -265,6 +275,12 @@ const PublicApp = (() => {
     modal.classList.remove('hidden');
     document.body.style.overflow = 'hidden';
     panel.focus();
+  }
+
+  function isArchived_(b) {
+    if (!b) return false;
+    const v = b.archived;
+    return v === true || v === 'true' || v === '1' || v === 1;
   }
 
   function closeModal() {
@@ -301,7 +317,7 @@ const PublicApp = (() => {
     return new Intl.NumberFormat('fr-FR', {
       style: 'currency',
       currency: 'EUR',
-      maximumFractionDigits: 0,
+      maximumFractionDigits: 2,
     }).format(amount);
   }
 
@@ -311,6 +327,48 @@ const PublicApp = (() => {
       clearTimeout(timer);
       timer = setTimeout(() => fn.apply(this, args), delay);
     };
+  }
+
+  function renderLayout_(layoutResp) {
+    const container = document.getElementById('cave-layout');
+    if (!layoutResp || !layoutResp.layout) {
+      container.classList.add('hidden');
+      return;
+    }
+    const layout = layoutResp.layout || layoutResp; // accept both shapes
+    container.innerHTML = '';
+    container.classList.remove('hidden');
+    container.style.position = 'relative';
+    container.style.minHeight = '240px';
+    (layout.slots || []).forEach(s => {
+      const el = document.createElement('div');
+      el.className = 'cave-slot';
+      el.style.position = 'absolute';
+      el.style.left = (s.x || 10) + 'px';
+      el.style.top = (s.y || 10) + 'px';
+      el.style.width = (s.size || 60) + 'px';
+      el.style.height = (s.size || 60) + 'px';
+      el.style.border = '1px solid var(--c-border)';
+      el.style.background = '#fff';
+      el.style.display = 'flex';
+      el.style.alignItems = 'center';
+      el.style.justifyContent = 'center';
+      el.style.fontSize = '12px';
+      el.textContent = s.label || '';
+      container.appendChild(el);
+      // Si une bouteille se rattache au slot (slot_id), l'afficher
+      const bottle = allBottles.find(b => b.slot_id === s.id || b.slot === s.id);
+      if (bottle) {
+        const img = document.createElement('img');
+        img.src = bottle.photo_url || '';
+        img.alt = bottle.cuvee || '';
+        img.style.width = '100%';
+        img.style.height = '100%';
+        img.style.objectFit = 'cover';
+        el.innerHTML = '';
+        el.appendChild(img);
+      }
+    });
   }
 
   // ── API publique ──────────────────────────────────────────────────────────

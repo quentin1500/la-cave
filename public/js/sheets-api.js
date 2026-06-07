@@ -47,7 +47,26 @@ const SheetsAPI = (() => {
    * @returns {Promise<Object>}
    */
   async function deleteBottle(id) {
-    return post_({ action: 'delete', id });
+    // Optional comment for archival
+    const comment = (arguments.length > 1 && arguments[1]) ? arguments[1] : '';
+    return post_({ action: 'delete', id, comment });
+  }
+
+  /**
+   * Récupère le layout (plan de la cave) stocké côté Apps Script
+   */
+  async function getLayout() {
+    const url = `${CONFIG.SHEETS_API_URL}?action=getLayout`;
+    const data = await get_(url);
+    if (data.error) throw new Error(data.error);
+    return data.layout || null;
+  }
+
+  /**
+   * Sauvegarde le layout (nécessite token admin)
+   */
+  async function saveLayout(layout) {
+    return post_({ action: 'saveLayout', data: layout });
   }
 
   // ── Helpers internes ──────────────────────────────────────────────────────
@@ -79,5 +98,5 @@ const SheetsAPI = (() => {
     return data;
   }
 
-  return { getAllBottles, addBottle, updateBottle, deleteBottle };
+  return { getAllBottles, addBottle, updateBottle, deleteBottle, getLayout, saveLayout };
 })();

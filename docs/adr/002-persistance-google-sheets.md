@@ -54,10 +54,12 @@ fetch(url, {
 
 | Méthode | Action | Auth requise |
 |---|---|---|
-| GET | `?action=getAll` | Non (lecture publique) |
+| GET  | `?action=getAll` | Non (lecture publique) |
+| GET  | `?action=getLayout` | Non |
 | POST | `{ action: 'add', data: {...}, apiKey }` | Oui |
 | POST | `{ action: 'update', id, data: {...}, apiKey }` | Oui |
-| POST | `{ action: 'delete', id, apiKey }` | Oui |
+| POST | `{ action: 'delete', id, apiKey, comment }` | Oui — archive la ligne au lieu de la supprimer |
+| POST | `{ action: 'saveLayout', data, apiKey }` | Oui |
 
 ## Conséquences
 

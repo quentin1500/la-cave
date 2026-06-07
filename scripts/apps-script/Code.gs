@@ -24,6 +24,10 @@ function doGet(e) {
       return buildResponse_(getAllBottles_());
     }
 
+    if (action === 'getLayout') {
+      return buildResponse_(getLayout_());
+    }
+    
     return buildResponse_({ error: 'Action non reconnue : ' + action }, 400);
 
   } catch (err) {
@@ -58,10 +62,6 @@ function doPost(e) {
       if (!body.id) return buildResponse_({ error: 'Champ id manquant' }, 400);
       // Support legacy delete -> now archive
       return buildResponse_(deleteBottle_(body.id, body.comment || ''));
-    }
-
-    if (action === 'getLayout') {
-      return buildResponse_(getLayout_());
     }
 
     if (action === 'saveLayout') {

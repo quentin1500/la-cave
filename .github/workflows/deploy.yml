@@ -36,4 +36,3 @@ jobs:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           publish_dir: ./public
           commit_message: "deploy: ${{ github.sha }}"
-          force_orphan: true

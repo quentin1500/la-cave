@@ -7,7 +7,7 @@
 
 const CONFIG = {
   SHEETS_API_URL:      '__SHEETS_API_URL__', 
-  ADMIN_PASSWORD_HASH: 'a19fabfc319eaffca4e85cafdf6e1226c48454b218ec263f37397a65fb55322b', //'__ADMIN_PASSWORD_HASH__',
+  ADMIN_PASSWORD_HASH: '__ADMIN_PASSWORD_HASH__',
 
   OFF_API_BASE:   'https://world.openfoodfacts.org',
   OFF_USER_AGENT: 'LaCave/1.0',

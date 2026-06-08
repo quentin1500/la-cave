@@ -7,9 +7,10 @@
 const AdminApp = (() => {
 
   // ── État ──────────────────────────────────────────────────────────────────
-  let allBottles      = [];
-  let filteredBottles = [];
-  let archivedBottles = [];
+  let allBottles        = [];
+  let filteredBottles   = [];
+  let archivedBottles   = [];
+  let _archivePendingId = null;
 
   // ── Initialisation ────────────────────────────────────────────────────────
 
@@ -29,7 +30,12 @@ const AdminApp = (() => {
     document.getElementById('form-backdrop').addEventListener('click', hideForm);
 
     // Fermeture via Echap
-    document.addEventListener('keydown', e => { if (e.key === 'Escape') hideForm(); });
+    document.addEventListener('keydown', e => {
+      if (e.key === 'Escape') {
+        hideForm();
+        closeArchiveModal();
+      }
+    });
 
     // Recherche et filtre admin
     document.getElementById('admin-search').addEventListener('input', debounce_(applyAdminFilters_, 280));
@@ -143,18 +149,58 @@ const AdminApp = (() => {
     }
   }
 
-  async function handleDelete(id) {
-    // Demande de confirmation + commentaire d'archivage
-    if (!confirm('Archiver cette bouteille (elle sera retirée de l\'interface publique) ?')) return;
-    const comment = prompt('Commentaire d\'archivage (facultatif) :', '');
+  function handleDelete(id) {
+    const bottle = allBottles.find(b => b.id === id);
+    _archivePendingId = id;
+    openArchiveModal_(bottle);
+  }
+
+  function openArchiveModal_(bottle) {
+    const modal  = document.getElementById('archive-modal');
+    const nameEl = document.getElementById('archive-modal-bottle-name');
+    document.getElementById('archive-comment').value = '';
+
+    if (bottle) {
+      const parts = [bottle.cuvee || bottle.producteur, bottle.millesime].filter(Boolean);
+      nameEl.textContent = parts.join(' — ') || 'Cette bouteille';
+    } else {
+      nameEl.textContent = '';
+    }
+
+    modal.classList.remove('hidden');
+    document.body.style.overflow = 'hidden';
+    document.getElementById('archive-panel').focus();
+
+    document.getElementById('archive-backdrop').onclick = closeArchiveModal;
+  }
+
+  function closeArchiveModal() {
+    document.getElementById('archive-modal').classList.add('hidden');
+    document.body.style.overflow = '';
+    _archivePendingId = null;
+  }
+
+  async function confirmArchive() {
+    if (!_archivePendingId) return;
+
+    const id      = _archivePendingId;
+    const comment = document.getElementById('archive-comment').value.trim();
+    const btn     = document.getElementById('archive-confirm-btn');
+
+    btn.disabled    = true;
+    btn.textContent = 'Archivage…';
 
     try {
-      await SheetsAPI.deleteBottle(id, comment || '');
+      await SheetsAPI.deleteBottle(id, comment);
+      closeArchiveModal();
       notify_('Bouteille archivée.', 'success');
       await loadBottles();
     } catch (err) {
       console.error('Erreur lors de l\'archivage :', err);
       notify_(`Erreur : ${err.message}`, 'error');
+    } finally {
+      btn.disabled    = false;
+      btn.innerHTML   = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/></svg> Archiver`;
     }
   }
 
@@ -788,6 +834,8 @@ const AdminApp = (() => {
     hideForm,
     handleSubmit,
     handleDelete,
+    closeArchiveModal,
+    confirmArchive,
     handleUnarchive,
     closeArchivedDetail,
     lookupOFF,

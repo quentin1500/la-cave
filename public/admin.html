@@ -394,6 +394,59 @@
     </div>
   </div>
 
+  <!-- ── Modal Archivage ────────────────────────────────────────────────── -->
+  <div
+    id="archive-modal"
+    class="modal hidden"
+    role="dialog"
+    aria-modal="true"
+    aria-labelledby="archive-modal-title"
+  >
+    <div class="modal__backdrop" id="archive-backdrop" aria-hidden="true"></div>
+    <div class="modal__panel" id="archive-panel" tabindex="-1" style="max-width: 480px">
+      <button class="modal__close" onclick="AdminApp.closeArchiveModal()" aria-label="Fermer">✕</button>
+      <div style="padding: var(--sp-8)">
+
+        <div style="display: flex; align-items: center; gap: var(--sp-4); margin-bottom: var(--sp-5); padding-bottom: var(--sp-5); border-bottom: 1px solid var(--c-border)">
+          <div style="flex-shrink: 0; width: 40px; height: 40px; border-radius: 50%; background: rgba(var(--c-warning-rgb, 192, 136, 42), 0.15); display: flex; align-items: center; justify-content: center;">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--c-warning)" stroke-width="2" aria-hidden="true">
+              <path d="M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/>
+            </svg>
+          </div>
+          <div>
+            <h2 id="archive-modal-title" style="font-size: var(--text-lg); margin-bottom: 2px">Archiver la bouteille</h2>
+            <p id="archive-modal-bottle-name" style="font-size: var(--text-sm); color: var(--c-gold); font-style: italic"></p>
+          </div>
+        </div>
+
+        <p style="font-size: var(--text-sm); color: var(--c-text-muted); margin-bottom: var(--sp-5)">
+          Cette bouteille sera retirée de l'interface publique et placée dans les archives. Elle pourra être restaurée ultérieurement.
+        </p>
+
+        <div class="form-group">
+          <label for="archive-comment">Commentaire d'archivage <span style="color: var(--c-text-subtle); font-weight: 400">(facultatif)</span></label>
+          <textarea
+            id="archive-comment"
+            class="form-control"
+            rows="3"
+            placeholder="Occasion, dégustation, raison de l'archivage…"
+          ></textarea>
+        </div>
+
+        <div class="form-actions" style="margin-top: var(--sp-6)">
+          <button type="button" class="btn btn--ghost" onclick="AdminApp.closeArchiveModal()">Annuler</button>
+          <button type="button" class="btn btn--danger" id="archive-confirm-btn" onclick="AdminApp.confirmArchive()">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+              <path d="M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/>
+            </svg>
+            Archiver
+          </button>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
   <!-- ── Notification toast ──────────────────────────────────────────────── -->
   <div id="notification" class="notification hidden" role="status" aria-live="polite"></div>
 

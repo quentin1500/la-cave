@@ -1,0 +1,408 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Administration — La Cave</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🔐</text></svg>">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,600;0,700;1,400&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+  <!-- ── Overlay d'authentification ─────────────────────────────────────── -->
+  <div id="auth-overlay" class="auth-overlay" role="main" aria-label="Connexion à l'interface admin">
+    <div class="auth-card">
+      <svg class="auth-card__logo" viewBox="0 0 40 100" fill="currentColor" aria-hidden="true">
+        <rect x="17" y="0" width="6" height="4" rx="2"/>
+        <rect x="15" y="4" width="10" height="6" rx="1"/>
+        <path d="M14 10 C9 22 7 34 7 46 L7 87 Q7 97 20 97 Q33 97 33 87 L33 46 C33 34 31 22 26 10 Z"/>
+        <rect x="9" y="52" width="22" height="24" rx="2" opacity="0.25"/>
+      </svg>
+      <h1>La Cave</h1>
+      <p class="auth-card__subtitle">Interface d'administration</p>
+
+      <form id="login-form" novalidate>
+        <div class="form-group">
+          <label for="login-password">Mot de passe</label>
+          <input
+            type="password"
+            id="login-password"
+            class="form-control"
+            autocomplete="current-password"
+            required
+            aria-required="true"
+          >
+        </div>
+        <button type="submit" class="btn btn--primary" style="width: 100%">
+          Se connecter
+        </button>
+      </form>
+
+      <p id="login-error" class="form-error hidden" role="alert">
+        Mot de passe incorrect. Veuillez réessayer.
+      </p>
+
+      <div style="margin-top: 1.5rem; text-align: center">
+        <a href="index.html" class="link-subtle">← Retour à la cave publique</a>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Interface admin (visible après connexion) ───────────────────────── -->
+  <div id="admin-app" class="hidden">
+
+    <!-- En-tête admin -->
+    <header class="admin-header">
+      <div class="container">
+        <div class="header__brand">
+          <svg class="header__logo" viewBox="0 0 40 100" fill="currentColor" aria-hidden="true">
+            <rect x="17" y="0" width="6" height="4" rx="2"/>
+            <rect x="15" y="4" width="10" height="6" rx="1"/>
+            <path d="M14 10 C9 22 7 34 7 46 L7 87 Q7 97 20 97 Q33 97 33 87 L33 46 C33 34 31 22 26 10 Z"/>
+            <rect x="9" y="52" width="22" height="24" rx="2" opacity="0.25"/>
+          </svg>
+          <div>
+            <div class="header__title">La Cave</div>
+            <div class="header__subtitle" style="color: var(--c-gold)">Administration</div>
+          </div>
+        </div>
+        <nav class="header__nav" aria-label="Navigation admin">
+          <a href="index.html" class="btn btn--ghost btn--sm" target="_blank" rel="noopener">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+              <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/>
+              <polyline points="15,3 21,3 21,9"/>
+              <line x1="10" y1="14" x2="21" y2="3"/>
+            </svg>
+            Voir la cave
+          </a>
+          <button class="btn btn--ghost btn--sm" onclick="AdminApp.logout()">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+              <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>
+              <polyline points="16,17 21,12 16,7"/>
+              <line x1="21" y1="12" x2="9" y2="12"/>
+            </svg>
+            Déconnexion
+          </button>
+        </nav>
+      </div>
+    </header>
+
+    <!-- Stats rapides -->
+    <section class="admin-stats-bar" aria-label="Statistiques rapides">
+      <div class="container">
+        <div class="admin-stats-grid">
+          <div class="admin-stat">
+            <span class="admin-stat__value" id="admin-stat-total">–</span>
+            <span class="admin-stat__label">Références</span>
+          </div>
+          <div class="admin-stat">
+            <span class="admin-stat__value" id="admin-stat-valeur">–</span>
+            <span class="admin-stat__label">Valeur estimée</span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Barre d'outils -->
+    <div class="admin-toolbar">
+      <div class="container">
+        <button class="btn btn--primary" onclick="AdminApp.showForm(null)">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true">
+            <line x1="12" y1="5" x2="12" y2="19"/>
+            <line x1="5" y1="12" x2="19" y2="12"/>
+          </svg>
+          Ajouter une bouteille
+        </button>
+        <button class="btn btn--secondary" onclick="AdminApp.openLayoutEditor()">
+          Éditer le plan de la cave
+        </button>
+        <div style="flex: 1; display: flex; gap: 0.75rem; flex-wrap: wrap">
+          <input
+            type="search"
+            class="search-input"
+            id="admin-search"
+            placeholder="Rechercher…"
+            aria-label="Rechercher dans la liste"
+            style="max-width: 280px"
+          >
+          <select class="filter-select" id="admin-filter-type" aria-label="Filtrer par type">
+            <option value="">Tous les types</option>
+          </select>
+        </div>
+      </div>
+    </div>
+
+    <!-- Contenu principal -->
+    <main class="admin-content">
+      <div class="container">
+
+        <!-- Chargement -->
+        <div id="admin-loading" class="loading-state" role="status">
+          <div class="spinner" aria-hidden="true"></div>
+          <p>Chargement des bouteilles…</p>
+        </div>
+
+        <!-- Erreur -->
+        <div id="admin-error" class="empty-state hidden" role="alert">
+          <div class="empty-state__icon" aria-hidden="true">⚠️</div>
+          <h2 class="empty-state__title">Erreur de chargement</h2>
+          <p class="empty-state__message" id="admin-error-message"></p>
+          <button class="btn btn--secondary" onclick="AdminApp.loadBottles()" style="margin-top: 1rem">
+            Réessayer
+          </button>
+        </div>
+
+        <!-- Liste vide -->
+        <div id="admin-empty" class="empty-state hidden" role="status">
+          <div class="empty-state__icon" aria-hidden="true">🍾</div>
+          <h2 class="empty-state__title">Cave vide</h2>
+          <p class="empty-state__message">Ajoutez votre première bouteille en cliquant sur le bouton ci-dessus.</p>
+        </div>
+
+        <!-- Tableau -->
+        <div class="table-wrapper hidden" id="admin-table-wrapper">
+          <table class="bottles-table" aria-label="Liste des bouteilles">
+            <thead>
+              <tr>
+                <th scope="col">Type</th>
+                <th scope="col">Producteur</th>
+                <th scope="col">Cuvée</th>
+                <th scope="col">Millésime</th>
+                <th scope="col">Emplacement</th>
+                <th scope="col">Prix achat</th>
+                <th scope="col" class="th-actions">Actions</th>
+              </tr>
+            </thead>
+            <tbody id="admin-table-body">
+            </tbody>
+          </table>
+        </div>
+
+        <!-- Bouteilles archivées -->
+        <div id="admin-archived-section" class="hidden">
+          <div class="admin-section-divider">
+            <span>Archives (<span id="admin-archived-count">0</span>)</span>
+          </div>
+          <div class="table-wrapper">
+            <table class="bottles-table" aria-label="Bouteilles archivées">
+              <thead>
+                <tr>
+                  <th scope="col">Type</th>
+                  <th scope="col">Producteur</th>
+                  <th scope="col">Cuvée</th>
+                  <th scope="col">Millésime</th>
+                  <th scope="col">Archivée le</th>
+                  <th scope="col">Commentaire</th>
+                  <th scope="col" class="th-actions">Actions</th>
+                </tr>
+              </thead>
+              <tbody id="admin-archived-body">
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+      </div>
+    </main>
+  </div>
+
+  <!-- ── Modal Formulaire ajout / édition ───────────────────────────────── -->
+  <div
+    id="form-modal"
+    class="modal hidden"
+    role="dialog"
+    aria-modal="true"
+    aria-labelledby="form-modal-title"
+  >
+    <div class="modal__backdrop" id="form-backdrop" aria-hidden="true"></div>
+    <div class="modal__panel modal__panel--form" id="form-panel" tabindex="-1">
+      <button class="modal__close" onclick="AdminApp.hideForm()" aria-label="Fermer le formulaire">✕</button>
+
+      <div class="form-wrapper">
+        <h2 id="form-modal-title">Ajouter une bouteille</h2>
+
+        <!-- Recherche OpenFoodFacts -->
+        <div class="off-search" role="search" aria-label="Recherche OpenFoodFacts">
+          <div class="off-search__header">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+              <circle cx="11" cy="11" r="8"/>
+              <line x1="21" y1="21" x2="16.65" y2="16.65"/>
+            </svg>
+            Pré-remplir depuis OpenFoodFacts (optionnel)
+          </div>
+          <div class="off-search__row">
+            <input
+              type="text"
+              id="off-search-input"
+              class="form-control"
+              placeholder="Code-barres (ex: 3760016781001) ou nom du produit"
+              aria-label="Terme de recherche OpenFoodFacts"
+            >
+            <button
+              type="button"
+              class="btn btn--secondary"
+              onclick="AdminApp.lookupOFF()"
+              id="off-search-btn"
+            >
+              Rechercher
+            </button>
+          </div>
+          <div id="off-results" class="off-results hidden" aria-live="polite"></div>
+        </div>
+
+        <!-- Formulaire principal -->
+        <form id="bottle-form" novalidate>
+          <input type="hidden" id="form-id">
+
+          <!-- Section : Informations principales -->
+          <div class="form-section">
+            <h3>Informations principales</h3>
+            <div class="form-row">
+              <div class="form-group">
+                <label for="f-type">Type <span class="required" aria-label="obligatoire">*</span></label>
+                <select id="f-type" class="form-control" required aria-required="true">
+                  <option value="">— Choisir —</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label for="f-millesime">Millésime</label>
+                <input type="number" id="f-millesime" class="form-control" placeholder="ex: 2018" min="1800" max="2099">
+              </div>
+            </div>
+            <div class="form-group">
+              <label for="f-producteur">Producteur / Domaine <span class="required" aria-label="obligatoire">*</span></label>
+              <input type="text" id="f-producteur" class="form-control" required aria-required="true" placeholder="ex: Château Margaux">
+            </div>
+            <div class="form-group">
+              <label for="f-cuvee">Cuvée / Nom</label>
+              <input type="text" id="f-cuvee" class="form-control" placeholder="ex: Grand Vin de Château Margaux">
+            </div>
+            <div class="form-row">
+              <div class="form-group">
+                <label for="f-appellation">Appellation</label>
+                <input type="text" id="f-appellation" class="form-control" placeholder="ex: Margaux">
+              </div>
+              <div class="form-group">
+                <label for="f-region">Région</label>
+                <input type="text" id="f-region" class="form-control" placeholder="ex: Bordeaux">
+              </div>
+            </div>
+            <div class="form-row">
+              <div class="form-group">
+                <label for="f-pays">Pays</label>
+                <input type="text" id="f-pays" class="form-control" placeholder="ex: France">
+              </div>
+              <div class="form-group">
+                <label for="f-cepages">Cépage(s)</label>
+                <input type="text" id="f-cepages" class="form-control" placeholder="ex: Cabernet Sauvignon, Merlot">
+              </div>
+            </div>
+          </div>
+
+          <!-- Section : Caractéristiques -->
+          <div class="form-section">
+            <h3>Caractéristiques</h3>
+            <div class="form-row form-row--3">
+              <div class="form-group">
+                <label for="f-volume">Volume (ml)</label>
+                <input type="number" id="f-volume" class="form-control" placeholder="750" min="1" step="1">
+              </div>
+              <div class="form-group">
+                <label for="f-degre">Degré d'alcool (%)</label>
+                <input type="number" id="f-degre" class="form-control" placeholder="13.5" step="0.1" min="0" max="100">
+              </div>
+              <div class="form-group">
+                <label for="f-code-barres">Code-barres</label>
+                <input type="text" id="f-code-barres" class="form-control" placeholder="EAN-13">
+              </div>
+            </div>
+            <div class="form-group">
+              <label for="f-photo">URL de la photo</label>
+              <input type="url" id="f-photo" class="form-control" placeholder="https://…">
+            </div>
+          </div>
+
+          <!-- Section : Emplacement & Stock -->
+          <div class="form-section">
+            <h3>Emplacement & Stock</h3>
+            <div class="form-row form-row--3">
+              <div class="form-group">
+                <label for="f-rang">Rang</label>
+                <input type="number" id="f-rang" class="form-control" min="1" step="1" placeholder="ex: 3">
+              </div>
+              <div class="form-group">
+                <label for="f-colonne">Colonne</label>
+                <input type="number" id="f-colonne" class="form-control" min="1" step="1" placeholder="ex: 4">
+              </div>
+            </div>
+          </div>
+
+          <!-- Section : Acquisition -->
+          <div class="form-section">
+            <h3>Acquisition</h3>
+            <div class="form-row form-row--3">
+              <div class="form-group">
+                <label for="f-date-achat">Date d'achat</label>
+                <input type="date" id="f-date-achat" class="form-control">
+              </div>
+              <div class="form-group">
+                <label for="f-prix-achat">Prix d'achat (€)</label>
+                <input type="number" id="f-prix-achat" class="form-control" step="0.01" min="0" placeholder="0.00">
+              </div>
+              <div class="form-group">
+                <label for="f-valeur">Valeur estimée (€)</label>
+                <input type="number" id="f-valeur" class="form-control" step="0.01" min="0" placeholder="0.00">
+              </div>
+            </div>
+          </div>
+
+          <!-- Section : Notes -->
+          <div class="form-section">
+            <h3>Notes personnelles</h3>
+            <div class="form-group">
+              <label for="f-notes">
+                <span class="sr-only">Notes personnelles</span>
+              </label>
+              <textarea
+                id="f-notes"
+                class="form-control"
+                rows="4"
+                placeholder="Vos impressions, accords mets-vins, occasions particulières…"
+              ></textarea>
+            </div>
+          </div>
+
+          <!-- Actions -->
+          <div class="form-actions">
+            <button type="button" class="btn btn--ghost" onclick="AdminApp.hideForm()">
+              Annuler
+            </button>
+            <button type="submit" class="btn btn--primary" id="form-submit-btn">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/>
+                <polyline points="17,21 17,13 7,13 7,21"/>
+                <polyline points="7,3 7,8 15,8"/>
+              </svg>
+              Enregistrer
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Notification toast ──────────────────────────────────────────────── -->
+  <div id="notification" class="notification hidden" role="status" aria-live="polite"></div>
+
+  <!-- ── Scripts ────────────────────────────────────────────────────────── -->
+  <script src="js/config.js"></script>
+  <script src="js/auth.js"></script>
+  <script src="js/sheets-api.js"></script>
+  <script src="js/openfoodfacts-api.js"></script>
+  <script src="js/admin.js"></script>
+
+</body>
+</html>

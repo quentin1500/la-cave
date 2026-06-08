@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="Ma cave à vins personnelle — découvrez ma collection de vins, champagnes et spiritueux.">
+  <title>La Cave</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🍷</text></svg>">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,600;0,700;1,400&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+  <!-- ── En-tête ─────────────────────────────────────────────────────────── -->
+  <header class="header">
+    <div class="container">
+      <div class="header__brand">
+        <svg class="header__logo" viewBox="0 0 40 100" fill="currentColor" aria-hidden="true">
+          <rect x="17" y="0" width="6" height="4" rx="2"/>
+          <rect x="15" y="4" width="10" height="6" rx="1"/>
+          <path d="M14 10 C9 22 7 34 7 46 L7 87 Q7 97 20 97 Q33 97 33 87 L33 46 C33 34 31 22 26 10 Z"/>
+          <rect x="9" y="52" width="22" height="24" rx="2" opacity="0.25"/>
+        </svg>
+        <div>
+          <div class="header__title">La Cave</div>
+          <div class="header__subtitle">Ma collection personnelle</div>
+        </div>
+      </div>
+      <nav class="header__nav" aria-label="Navigation principale">
+        <a href="admin.html" class="btn btn--ghost btn--sm" aria-label="Accéder à l'interface d'administration">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+            <circle cx="12" cy="8" r="4"/>
+            <path d="M6 20v-2a6 6 0 0 1 12 0v2"/>
+          </svg>
+          Admin
+        </a>
+      </nav>
+    </div>
+  </header>
+
+  <!-- ── Héro / Statistiques ─────────────────────────────────────────────── -->
+  <section class="hero" aria-label="Statistiques de la cave">
+    <div class="container">
+      <h1 class="hero__title">Ma Collection</h1>
+      <div class="hero__divider" aria-hidden="true"></div>
+      <div class="stats-grid" role="list">
+        <div class="stat-card" role="listitem">
+          <span class="stat-card__value" id="stat-total" aria-label="Nombre de références dans la cave">–</span>
+          <span class="stat-card__label">Références</span>
+        </div>
+        <div class="stat-card" role="listitem">
+          <span class="stat-card__value" id="stat-types" aria-label="Nombre de types différents">–</span>
+          <span class="stat-card__label">Types</span>
+        </div>
+        <div class="stat-card" role="listitem">
+          <span class="stat-card__value" id="stat-regions" aria-label="Nombre de régions différentes">–</span>
+          <span class="stat-card__label">Régions</span>
+        </div>
+        <div class="stat-card" role="listitem">
+          <span class="stat-card__value" id="stat-valeur" aria-label="Valeur totale estimée">–</span>
+          <span class="stat-card__label">Valeur estimée</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── Filtres & Recherche ─────────────────────────────────────────────── -->
+  <section class="controls" id="controls" aria-label="Filtres et recherche">
+    <div class="container">
+      <div class="controls__bar">
+        <div class="controls__filters" role="group" aria-label="Filtrer la collection">
+          <select class="filter-select" id="filter-type" aria-label="Filtrer par type">
+            <option value="">Tous les types</option>
+          </select>
+          <select class="filter-select" id="filter-region" aria-label="Filtrer par région">
+            <option value="">Toutes les régions</option>
+          </select>
+          <select class="filter-select" id="filter-pays" aria-label="Filtrer par pays">
+            <option value="">Tous les pays</option>
+          </select>
+          <select class="filter-select" id="filter-millesime" aria-label="Filtrer par millésime">
+            <option value="">Tous les millésimes</option>
+          </select>
+        </div>
+        <div class="controls__search">
+          <input
+            type="search"
+            class="search-input"
+            id="search"
+            placeholder="Rechercher producteur, cuvée…"
+            aria-label="Rechercher une bouteille"
+            autocomplete="off"
+          >
+        </div>
+      </div>
+      <div class="cellar__count" aria-live="polite" aria-atomic="true">
+        <span id="result-count">–</span> bouteille(s) affichée(s)
+      </div>
+    </div>
+  </section>
+
+  <!-- ── Grille de bouteilles ────────────────────────────────────────────── -->
+  <main class="cellar" id="main-content">
+    <div class="container">
+
+      <!-- Chargement -->
+      <div id="loading-state" class="loading-state" role="status" aria-label="Chargement en cours">
+        <div class="spinner" aria-hidden="true"></div>
+        <p>Chargement de la cave…</p>
+      </div>
+
+      <!-- Erreur -->
+      <div id="error-state" class="empty-state hidden" role="alert">
+        <div class="empty-state__icon" aria-hidden="true">⚠️</div>
+        <h2 class="empty-state__title">Impossible de charger la cave</h2>
+        <p class="empty-state__message" id="error-message">Une erreur est survenue.</p>
+        <button class="btn btn--secondary" onclick="PublicApp.init()" style="margin-top: 1.5rem">
+          Réessayer
+        </button>
+      </div>
+
+      <!-- Liste vide -->
+      <div id="empty-state" class="empty-state hidden" role="status">
+        <div class="empty-state__icon" aria-hidden="true">🔍</div>
+        <h2 class="empty-state__title">Aucune bouteille trouvée</h2>
+        <p class="empty-state__message">Modifiez vos critères de recherche ou de filtre.</p>
+      </div>
+
+      <!-- Grille -->
+      <div id="cave-layout" class="cave-layout hidden" aria-label="Plan de la cave" style="margin-bottom:1rem"></div>
+      <div id="bottle-grid" class="bottle-grid hidden" role="list" aria-label="Collection de bouteilles"></div>
+
+    </div>
+  </main>
+
+  <!-- ── Modal détail ────────────────────────────────────────────────────── -->
+  <div
+    id="bottle-modal"
+    class="modal hidden"
+    role="dialog"
+    aria-modal="true"
+    aria-labelledby="modal-title"
+  >
+    <div class="modal__backdrop" id="modal-backdrop" aria-hidden="true"></div>
+    <div class="modal__panel" id="modal-panel" tabindex="-1">
+      <!-- Contenu injecté dynamiquement par public.js -->
+    </div>
+  </div>
+
+  <!-- ── Bannière mode démo ──────────────────────────────────────────────── -->
+  <div id="demo-banner" class="demo-banner hidden" role="status">
+    Mode démonstration — données d'exemple uniquement.
+    Voir <a href="https://github.com" target="_blank" rel="noopener noreferrer">le guide de configuration</a> pour connecter Google Sheets.
+  </div>
+
+  <!-- ── Pied de page ────────────────────────────────────────────────────── -->
+  <footer class="footer">
+    <div class="container">
+      <p>La Cave &copy; <span id="footer-year"></span></p>
+    </div>
+  </footer>
+
+  <!-- ── Scripts ────────────────────────────────────────────────────────── -->
+  <script src="js/config.js"></script>
+  <script src="js/sheets-api.js"></script>
+  <script src="js/openfoodfacts-api.js"></script>
+  <script src="js/public.js"></script>
+
+</body>
+</html>

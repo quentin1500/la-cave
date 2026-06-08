@@ -7,7 +7,7 @@
 
 const CONFIG = {
   SHEETS_API_URL:      'https://script.google.com/macros/s/AKfycbyc5uLxZoqbFDFqvdK5h46Xl-GaSa9W0ncDWwJUNvbROJpsiOmD2bfYIzBaTb7TFrLZXA/exec', 
-  ADMIN_PASSWORD_HASH: 'a19fabfc319eaffca4e85cafdf6e1226c48454b218ec263f37397a65fb55322b', //'ebd66b3f786d51c51667857a17ab51719e102138bc5146dbc37def295343ae33',
+  ADMIN_PASSWORD_HASH: 'ebd66b3f786d51c51667857a17ab51719e102138bc5146dbc37def295343ae33',
 
   OFF_API_BASE:   'https://world.openfoodfacts.org',
   OFF_USER_AGENT: 'LaCave/1.0',

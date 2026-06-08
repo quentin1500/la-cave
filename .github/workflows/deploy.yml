@@ -6,11 +6,20 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: write
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: "pages"
+  cancel-in-progress: false
 
 jobs:
   deploy:
     runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -30,9 +39,14 @@ jobs:
           sed -i "s|__SHEETS_API_URL__|${{ secrets.SHEETS_API_URL }}|g" public/js/config.js
           sed -i "s|__ADMIN_PASSWORD_HASH__|${{ secrets.ADMIN_PASSWORD_HASH }}|g" public/js/config.js
 
-      - name: Déploiement vers gh-pages
-        uses: peaceiris/actions-gh-pages@v3
+      - name: Configurer Pages
+        uses: actions/configure-pages@v5
+
+      - name: Upload de l'artifact
+        uses: actions/upload-pages-artifact@v3
         with:
-          github_token: ${{ secrets.GITHUB_TOKEN }}
-          publish_dir: ./public
-          commit_message: "deploy: ${{ github.sha }}"
+          path: ./public
+
+      - name: Déploiement vers GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4

@@ -139,8 +139,10 @@ function updateBottle_(id, data) {
       data.id = id;
       data.date_creation = sheetData[i][headers.indexOf('date_creation')] || new Date().toISOString();
 
-      var updatedRow = HEADERS.map(function(header) {
-        return data[header] !== undefined ? data[header] : sheetData[i][headers.indexOf(header)];
+      // Utiliser les en-têtes RÉELS de la feuille (pas la constante HEADERS)
+      // pour garantir que l'ordre et le nombre de colonnes correspondent exactement.
+      var updatedRow = headers.map(function(header, j) {
+        return data[header] !== undefined ? data[header] : sheetData[i][j];
       });
 
       sheet.getRange(i + 1, 1, 1, updatedRow.length).setValues([updatedRow]);

@@ -99,10 +99,6 @@
             <span class="admin-stat__label">Références</span>
           </div>
           <div class="admin-stat">
-            <span class="admin-stat__value" id="admin-stat-qty">–</span>
-            <span class="admin-stat__label">Bouteilles</span>
-          </div>
-          <div class="admin-stat">
             <span class="admin-stat__value" id="admin-stat-valeur">–</span>
             <span class="admin-stat__label">Valeur estimée</span>
           </div>
@@ -175,7 +171,6 @@
                 <th scope="col">Producteur</th>
                 <th scope="col">Cuvée</th>
                 <th scope="col">Millésime</th>
-                <th scope="col">Qté</th>
                 <th scope="col">Emplacement</th>
                 <th scope="col">Prix achat</th>
                 <th scope="col" class="th-actions">Actions</th>
@@ -184,6 +179,30 @@
             <tbody id="admin-table-body">
             </tbody>
           </table>
+        </div>
+
+        <!-- Bouteilles archivées -->
+        <div id="admin-archived-section" class="hidden">
+          <div class="admin-section-divider">
+            <span>Archives (<span id="admin-archived-count">0</span>)</span>
+          </div>
+          <div class="table-wrapper">
+            <table class="bottles-table" aria-label="Bouteilles archivées">
+              <thead>
+                <tr>
+                  <th scope="col">Type</th>
+                  <th scope="col">Producteur</th>
+                  <th scope="col">Cuvée</th>
+                  <th scope="col">Millésime</th>
+                  <th scope="col">Archivée le</th>
+                  <th scope="col">Commentaire</th>
+                  <th scope="col" class="th-actions">Actions</th>
+                </tr>
+              </thead>
+              <tbody id="admin-archived-body">
+              </tbody>
+            </table>
+          </div>
         </div>
 
       </div>
@@ -317,10 +336,6 @@
               <div class="form-group">
                 <label for="f-colonne">Colonne</label>
                 <input type="number" id="f-colonne" class="form-control" min="1" step="1" placeholder="ex: 4">
-              </div>
-              <div class="form-group">
-                <label for="f-quantite">Quantité <span class="required" aria-label="obligatoire">*</span></label>
-                <input type="number" id="f-quantite" class="form-control" min="0" step="1" value="1" required aria-required="true">
               </div>
             </div>
           </div>

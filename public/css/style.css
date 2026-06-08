@@ -683,6 +683,59 @@ h4 { font-size: var(--text-lg);  font-weight: 500; }
 
 .admin-content { padding: var(--sp-8) 0 var(--sp-16); }
 
+/* ── Section archives ────────────────────────────────────────── */
+.admin-section-divider {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-4);
+  margin: var(--sp-10) 0 var(--sp-5);
+  color: var(--c-text-subtle);
+  font-size: var(--text-xs);
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+}
+.admin-section-divider::before,
+.admin-section-divider::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: var(--c-border);
+}
+.admin-section-divider span { padding: 0 var(--sp-3); flex-shrink: 0; }
+.archived-row td { opacity: 0.72; }
+.archived-row--clickable { cursor: pointer; }
+.archived-row--clickable:hover td { opacity: 1; background: var(--c-bg-raised); }
+.archived-row--clickable:focus-visible { outline: 2px solid var(--c-gold); outline-offset: -2px; }
+.archived-cell { color: var(--c-text-muted); font-style: italic; }
+.archived-cell--comment {
+  max-width: 200px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Modal de détail d'une bouteille archivée */
+.archived-detail-meta {
+  background: rgba(200, 64, 64, 0.06);
+  border: 1px solid rgba(200, 64, 64, 0.25);
+  border-radius: var(--r-lg);
+  overflow: hidden;
+}
+.archived-detail-meta__header {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+  padding: var(--sp-3) var(--sp-4);
+  background: rgba(200, 64, 64, 0.1);
+  border-bottom: 1px solid rgba(200, 64, 64, 0.2);
+  font-size: var(--text-xs);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--c-error);
+  font-weight: 600;
+}
+.archived-detail-meta__body { padding: var(--sp-4); }
+
 /* ── A3. Tableau ───────────────────────────────────────────────── */
 .table-wrapper { overflow-x: auto; border-radius: var(--r-lg); border: 1px solid var(--c-border); }
 .bottles-table { width: 100%; border-collapse: collapse; min-width: 700px; }

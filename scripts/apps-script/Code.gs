@@ -8,7 +8,7 @@ var SHEET_NAME = 'Bouteilles';
 var HEADERS = [
   'id', 'type', 'producteur', 'cuvee', 'millesime', 'appellation',
   'region', 'pays', 'cepages', 'volume', 'degre_alcool', 'code_barres',
-  'photo_url', 'rang', 'colonne', 'quantite', 'date_achat', 'prix_achat',
+  'photo_url', 'rang', 'colonne', 'date_achat', 'prix_achat',
   'valeur_estimee', 'notes_personnelles', 'date_creation', 'date_modification',
   // Archivage
   'archived', 'archived_at', 'archive_comment'

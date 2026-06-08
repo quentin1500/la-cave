@@ -34,7 +34,6 @@ Bouteille
 ├─ photo_url            URL complète de l'image
 ├─ rang                 Entier ≥ 1 (voir ADR-005)
 ├─ colonne              Entier ≥ 1 (voir ADR-005)
-├─ quantite             Entier ≥ 0 (0 = plus en stock, entrée conservée)
 ├─ date_achat           Chaîne ISO 8601 (YYYY-MM-DD)
 ├─ prix_achat           Décimal en euros
 ├─ valeur_estimee       Décimal en euros (peut différer du prix d'achat)
@@ -78,7 +77,7 @@ l'historique est conservé et consultable via l'interface d'administration.
 ```
 id | type | producteur | cuvee | millesime | appellation | region | pays |
 cepages | volume | degre_alcool | code_barres | photo_url | rang | colonne |
-quantite | date_achat | prix_achat | valeur_estimee | notes_personnelles |
+date_achat | prix_achat | valeur_estimee | notes_personnelles |
 date_creation | date_modification
 ```
 
@@ -92,7 +91,6 @@ Génération : `crypto.randomUUID()` (API Web Crypto, disponible dans tous les n
 **Positif :**
 - Modèle complet couvrant tous les cas d'usage exprimés
 - Types normalisés permettant le filtrage et le coloriage
-- `quantite = 0` permet de conserver l'historique des bouteilles consommées
 
 **Négatif :**
 - Pas de gestion des fournisseurs / cavistes (hors périmètre)

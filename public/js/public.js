@@ -93,16 +93,14 @@ const PublicApp = (() => {
   // ── Statistiques ──────────────────────────────────────────────────────────
 
   function renderStats_(bottles) {
-    const totalQty  = bottles.reduce((s, b) => s + (parseInt(b.quantite) || 0), 0);
     const typesSet  = new Set(bottles.filter(b => b.type).map(b => b.type));
     const regionsSet = new Set(bottles.filter(b => b.region).map(b => b.region));
     const valeur    = bottles.reduce((s, b) => {
-      const qty = parseInt(b.quantite) || 0;
       const val = parseFloat(b.valeur_estimee) || parseFloat(b.prix_achat) || 0;
-      return s + qty * val;
+      return s + val;
     }, 0);
 
-    document.getElementById('stat-total').textContent   = totalQty;
+    document.getElementById('stat-total').textContent   = bottles.length;
     document.getElementById('stat-types').textContent   = typesSet.size;
     document.getElementById('stat-regions').textContent = regionsSet.size;
     document.getElementById('stat-valeur').textContent  = valeur > 0 ? formatPrice_(valeur) : '–';
@@ -164,10 +162,8 @@ const PublicApp = (() => {
   function renderGrid_(bottles) {
     const grid     = document.getElementById('bottle-grid');
     const countEl  = document.getElementById('result-count');
-    const totalQty = bottles.reduce((s, b) => s + (parseInt(b.quantite) || 0), 0);
-
     grid.innerHTML = '';
-    countEl.textContent = `${bottles.length} référence(s), ${totalQty} bouteille(s)`;
+    countEl.textContent = `${bottles.length} référence${bottles.length > 1 ? 's' : ''}`;
 
     bottles.forEach(b => grid.appendChild(createCard_(b)));
   }
@@ -175,7 +171,6 @@ const PublicApp = (() => {
   function createCard_(bottle) {
     const typeLabel = TYPE_LABELS[bottle.type] || bottle.type || 'Autre';
     const typeColor = TYPE_COLORS[bottle.type] || 'var(--c-type-autre)';
-    const qty       = parseInt(bottle.quantite) || 0;
 
     const card = document.createElement('article');
     card.className = 'bottle-card';
@@ -191,8 +186,6 @@ const PublicApp = (() => {
       <div class="bottle-card__image">
         ${imgHtml}
         <span class="bottle-card__type-badge" style="background-color:${typeColor}">${escapeHtml(typeLabel)}</span>
-        <span class="bottle-card__quantity${qty === 0 ? ' bottle-card__quantity--empty' : ''}"
-              aria-label="${qty} bouteille${qty > 1 ? 's' : ''}">${qty}</span>
       </div>
       <div class="bottle-card__body">
         <p class="bottle-card__producer">${escapeHtml(bottle.producteur || '–')}</p>
@@ -217,7 +210,6 @@ const PublicApp = (() => {
   function showModal_(bottle) {
     const modal  = document.getElementById('bottle-modal');
     const panel  = document.getElementById('modal-panel');
-    const qty    = parseInt(bottle.quantite) || 0;
     const typeLabel = TYPE_LABELS[bottle.type] || bottle.type || 'Autre';
     const typeColor = TYPE_COLORS[bottle.type] || 'var(--c-type-autre)';
 
@@ -247,7 +239,7 @@ const PublicApp = (() => {
             ${detailRow_('Prix d\'achat', bottle.prix_achat ? formatPrice_(Number(bottle.prix_achat)) : '')}
           </div>
 
-          <div class="modal__location" aria-label="Emplacement et quantité">
+          <div class="modal__location" aria-label="Emplacement">
             <div>
               <div style="font-size:var(--text-xs);color:var(--c-text-muted);text-transform:uppercase;letter-spacing:.06em;margin-bottom:4px">Emplacement</div>
               <div style="font-size:var(--text-sm);font-weight:500">
@@ -255,10 +247,6 @@ const PublicApp = (() => {
                   ? `Rang ${escapeHtml(String(bottle.rang))}, Colonne ${escapeHtml(String(bottle.colonne))}`
                   : '–'}
               </div>
-            </div>
-            <div style="text-align:right">
-              <div style="font-size:var(--text-2xl);font-weight:700;color:var(--c-gold);font-family:var(--font-display)">${qty}</div>
-              <div style="font-size:var(--text-xs);color:var(--c-text-muted)">bouteille${qty > 1 ? 's' : ''}</div>
             </div>
           </div>
 

@@ -9,6 +9,7 @@ const AdminApp = (() => {
   // ── État ──────────────────────────────────────────────────────────────────
   let allBottles      = [];
   let filteredBottles = [];
+  let archivedBottles = [];
 
   // ── Initialisation ────────────────────────────────────────────────────────
 
@@ -95,11 +96,16 @@ const AdminApp = (() => {
         ? await SheetsAPI.getAllBottles()
         : SAMPLE_BOTTLES;
 
-      filteredBottles = allBottles;
-      populateAdminTypeFilter_();
+      // Séparer les bouteilles actives et archivées
+      archivedBottles = allBottles.filter(isArchived_);
+      const activeBottles = allBottles.filter(b => !isArchived_(b));
+
+      filteredBottles = activeBottles;
+      populateAdminTypeFilter_(activeBottles);
       renderBottleList_(filteredBottles);
-      renderAdminStats_(allBottles);
-      showAdminState_(allBottles.length === 0 ? 'empty' : 'table');
+      renderArchivedList_(archivedBottles);
+      renderAdminStats_(activeBottles);
+      showAdminState_(activeBottles.length === 0 ? 'empty' : 'table');
     } catch (err) {
       console.error('Erreur de chargement :', err);
       document.getElementById('admin-error-message').textContent = err.message || 'Impossible de charger les bouteilles.';
@@ -313,8 +319,6 @@ const AdminApp = (() => {
     document.getElementById('off-results').innerHTML = '';
     document.getElementById('off-results').classList.add('hidden');
     document.getElementById('off-search-input').value = '';
-    // Valeur par défaut pour la quantité
-    document.getElementById('f-quantite').value = '1';
   }
 
   function populateForm_(bottle) {
@@ -333,7 +337,6 @@ const AdminApp = (() => {
     document.getElementById('f-photo').value          = bottle.photo_url || '';
     document.getElementById('f-rang').value           = bottle.rang || '';
     document.getElementById('f-colonne').value        = bottle.colonne || '';
-    document.getElementById('f-quantite').value       = bottle.quantite !== undefined ? bottle.quantite : '1';
     document.getElementById('f-date-achat').value     = bottle.date_achat || '';
     document.getElementById('f-prix-achat').value     = bottle.prix_achat || '';
     document.getElementById('f-valeur').value         = bottle.valeur_estimee || '';
@@ -360,7 +363,6 @@ const AdminApp = (() => {
       photo_url:          val('f-photo'),
       rang:               val('f-rang')       ? Number(val('f-rang'))       : '',
       colonne:            val('f-colonne')    ? Number(val('f-colonne'))    : '',
-      quantite:           val('f-quantite')   ? Number(val('f-quantite'))   : 0,
       date_achat:         val('f-date-achat'),
       prix_achat:         val('f-prix-achat') ? Number(val('f-prix-achat')) : '',
       valeur_estimee:     val('f-valeur')     ? Number(val('f-valeur'))     : '',
@@ -452,6 +454,178 @@ const AdminApp = (() => {
     notify_('Données OpenFoodFacts appliquées. Vérifiez et complétez le formulaire.', 'info');
   }
 
+  // ── Archivage ─────────────────────────────────────────────────────────────
+
+  /** Détermine si une bouteille est archivée (robuste aux types Google Sheets). */
+  function isArchived_(b) {
+    return b.archived === true || b.archived === 'TRUE' || b.archived === 'true'
+        || b.archived === 1   || b.archived === '1';
+  }
+
+  function renderArchivedList_(bottles) {
+    const countEl = document.getElementById('admin-archived-count');
+    const tbody   = document.getElementById('admin-archived-body');
+    countEl.textContent = bottles.length;
+    tbody.innerHTML     = '';
+
+    bottles.forEach(b => {
+      const typeLabel  = TYPE_LABELS[b.type] || b.type || '–';
+      const typeColor  = TYPE_COLORS[b.type] || 'var(--c-type-autre)';
+      const archivedAt = b.archived_at
+        ? new Date(b.archived_at).toLocaleDateString('fr-FR')
+        : '–';
+
+      const tr = document.createElement('tr');
+      tr.className = 'archived-row archived-row--clickable';
+      tr.setAttribute('role', 'button');
+      tr.setAttribute('tabindex', '0');
+      tr.setAttribute('aria-label', `Voir les détails de ${b.cuvee || b.producteur || 'cette bouteille'}`);
+      tr.innerHTML = `
+        <td>
+          <span class="badge" style="background-color:${typeColor};opacity:.65">${escapeHtml_(typeLabel)}</span>
+        </td>
+        <td class="archived-cell">${escapeHtml_(b.producteur || '–')}</td>
+        <td class="archived-cell">${escapeHtml_(b.cuvee || '–')}</td>
+        <td class="archived-cell">${escapeHtml_(String(b.millesime || '–'))}</td>
+        <td class="archived-cell" style="white-space:nowrap">${escapeHtml_(archivedAt)}</td>
+        <td class="archived-cell archived-cell--comment">${escapeHtml_(b.archive_comment || '')}</td>
+        <td class="td-actions">
+          <button
+            class="btn btn--ghost btn--sm"
+            onclick="event.stopPropagation(); AdminApp.handleUnarchive('${escapeHtml_(b.id || '')}')"
+            aria-label="Désarchiver ${escapeHtml_(b.cuvee || '')}"
+          >
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+              <polyline points="1,4 1,10 7,10"/>
+              <path d="M3.51 15a9 9 0 1 0 .49-3.5"/>
+            </svg>
+            Désarchiver
+          </button>
+        </td>
+      `;
+
+      const open = () => showArchivedDetail_(b);
+      tr.addEventListener('click', open);
+      tr.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); open(); } });
+
+      tbody.appendChild(tr);
+    });
+  }
+
+  function showArchivedDetail_(bottle) {
+    let modal = document.getElementById('archived-detail-modal');
+    if (!modal) {
+      modal = document.createElement('div');
+      modal.id        = 'archived-detail-modal';
+      modal.className = 'modal hidden';
+      modal.setAttribute('role', 'dialog');
+      modal.setAttribute('aria-modal', 'true');
+      modal.setAttribute('aria-labelledby', 'archived-detail-title');
+      document.body.appendChild(modal);
+    }
+
+    const typeLabel  = TYPE_LABELS[bottle.type] || bottle.type || 'Autre';
+    const typeColor  = TYPE_COLORS[bottle.type] || 'var(--c-type-autre)';
+    const archivedAt = bottle.archived_at
+      ? new Date(bottle.archived_at).toLocaleString('fr-FR')
+      : '–';
+
+    const detailRow = (label, value) => value
+      ? `<div class="detail-row">
+           <span class="detail-row__label">${escapeHtml_(label)}</span>
+           <span class="detail-row__value">${escapeHtml_(String(value))}</span>
+         </div>`
+      : '';
+
+    modal.innerHTML = `
+      <div class="modal__backdrop" id="archived-detail-backdrop"></div>
+      <div class="modal__panel" tabindex="-1" style="max-width:680px" id="archived-detail-panel">
+        <button class="modal__close" onclick="AdminApp.closeArchivedDetail()" aria-label="Fermer">✕</button>
+        <div style="padding:var(--sp-8)">
+          <div style="display:flex;align-items:center;gap:var(--sp-3);margin-bottom:var(--sp-5);padding-bottom:var(--sp-5);border-bottom:1px solid var(--c-border)">
+            <span class="badge" style="background-color:${typeColor}">${escapeHtml_(typeLabel)}</span>
+            <div>
+              <h2 id="archived-detail-title" style="font-size:var(--text-xl);margin-bottom:2px">${escapeHtml_(bottle.cuvee || 'Sans nom')}</h2>
+              <p style="font-size:var(--text-sm);color:var(--c-gold);text-transform:uppercase;letter-spacing:.07em">${escapeHtml_(bottle.producteur || '')}</p>
+            </div>
+          </div>
+
+          <div class="modal__details" style="margin-bottom:var(--sp-5)">
+            ${detailRow('Millésime',   bottle.millesime)}
+            ${detailRow('Appellation', bottle.appellation)}
+            ${detailRow('Région',      bottle.region)}
+            ${detailRow('Pays',         bottle.pays)}
+            ${detailRow('Cépage(s)',   bottle.cepages)}
+            ${detailRow('Volume',       bottle.volume ? `${bottle.volume} ml` : '')}
+            ${detailRow('Alcool',       bottle.degre_alcool ? `${bottle.degre_alcool}°` : '')}
+            ${detailRow('Date d\u2019achat', bottle.date_achat)}
+            ${detailRow('Prix d\u2019achat', bottle.prix_achat ? `${Number(bottle.prix_achat).toFixed(2)}\u00a0€` : '')}
+            ${detailRow('Valeur estimée', bottle.valeur_estimee ? `${Number(bottle.valeur_estimee).toFixed(2)}\u00a0€` : '')}
+          </div>
+
+          ${bottle.notes_personnelles ? `
+            <div class="modal__notes" style="margin-bottom:var(--sp-5)">
+              <h4>Notes personnelles</h4>
+              <p>${escapeHtml_(bottle.notes_personnelles)}</p>
+            </div>` : ''}
+
+          <div class="archived-detail-meta">
+            <div class="archived-detail-meta__header">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+              </svg>
+              Archivage
+            </div>
+            <div class="archived-detail-meta__body">
+              ${detailRow('Archivée le', archivedAt)}
+              ${bottle.archive_comment
+                ? `<div class="detail-row" style="margin-top:var(--sp-3)">
+                     <span class="detail-row__label">Commentaire</span>
+                     <span class="detail-row__value" style="font-style:italic;color:var(--c-text-muted)">${escapeHtml_(bottle.archive_comment)}</span>
+                   </div>`
+                : '<p style="font-size:var(--text-sm);color:var(--c-text-subtle);font-style:italic">Aucun commentaire d’archivage.</p>'}
+            </div>
+          </div>
+
+          <div style="display:flex;justify-content:flex-end;gap:var(--sp-3);margin-top:var(--sp-6);padding-top:var(--sp-4);border-top:1px solid var(--c-border)">
+            <button class="btn btn--ghost" onclick="AdminApp.closeArchivedDetail()">Fermer</button>
+            <button class="btn btn--secondary" onclick="AdminApp.closeArchivedDetail(); AdminApp.handleUnarchive('${escapeHtml_(bottle.id || '')}')">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                <polyline points="1,4 1,10 7,10"/>
+                <path d="M3.51 15a9 9 0 1 0 .49-3.5"/>
+              </svg>
+              Désarchiver
+            </button>
+          </div>
+        </div>
+      </div>
+    `;
+
+    document.getElementById('archived-detail-backdrop').addEventListener('click', closeArchivedDetail);
+    modal.classList.remove('hidden');
+    document.body.style.overflow = 'hidden';
+    document.getElementById('archived-detail-panel').focus();
+  }
+
+  function closeArchivedDetail() {
+    const modal = document.getElementById('archived-detail-modal');
+    if (modal) modal.classList.add('hidden');
+    document.body.style.overflow = '';
+  }
+
+  async function handleUnarchive(id) {
+    if (!confirm('Restaurer cette bouteille dans la cave active ?')) return;
+
+    try {
+      await SheetsAPI.updateBottle(id, { archived: false, archived_at: '', archive_comment: '' });
+      notify_('Bouteille restaurée avec succès.', 'success');
+      await loadBottles();
+    } catch (err) {
+      console.error('Erreur lors de la restauration :', err);
+      notify_(`Erreur : ${err.message}`, 'error');
+    }
+  }
+
   // ── Rendu du tableau ──────────────────────────────────────────────────────
 
   function renderBottleList_(bottles) {
@@ -459,7 +633,6 @@ const AdminApp = (() => {
     tbody.innerHTML = '';
 
     bottles.forEach(b => {
-      const qty    = parseInt(b.quantite) || 0;
       const typeLabel = TYPE_LABELS[b.type] || b.type || '–';
       const typeColor = TYPE_COLORS[b.type] || 'var(--c-type-autre)';
       const emplacement = (b.rang && b.colonne) ? `R${b.rang} C${b.colonne}` : '–';
@@ -473,7 +646,6 @@ const AdminApp = (() => {
         <td>${escapeHtml_(b.producteur || '–')}</td>
         <td>${escapeHtml_(b.cuvee || '–')}</td>
         <td>${escapeHtml_(String(b.millesime || '–'))}</td>
-        <td style="font-weight:700;color:${qty === 0 ? 'var(--c-error)' : 'var(--c-text)'}">${qty}</td>
         <td>${escapeHtml_(emplacement)}</td>
         <td>${escapeHtml_(prix)}</td>
         <td class="td-actions">
@@ -507,15 +679,12 @@ const AdminApp = (() => {
 
   function renderAdminStats_(bottles) {
     const totalRefs = bottles.length;
-    const totalQty  = bottles.reduce((s, b) => s + (parseInt(b.quantite) || 0), 0);
     const valeur    = bottles.reduce((s, b) => {
-      const qty = parseInt(b.quantite) || 0;
       const val = parseFloat(b.valeur_estimee) || parseFloat(b.prix_achat) || 0;
-      return s + qty * val;
+      return s + val;
     }, 0);
 
     document.getElementById('admin-stat-total').textContent  = totalRefs;
-    document.getElementById('admin-stat-qty').textContent    = totalQty;
     document.getElementById('admin-stat-valeur').textContent = valeur > 0
       ? new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'EUR', maximumFractionDigits: 0 }).format(valeur)
       : '–';
@@ -523,11 +692,12 @@ const AdminApp = (() => {
 
   // ── Filtres admin ─────────────────────────────────────────────────────────
 
-  function populateAdminTypeFilter_() {
+  function populateAdminTypeFilter_(bottles) {
     const select  = document.getElementById('admin-filter-type');
     const current = select.value;
     while (select.options.length > 1) select.remove(1);
-    const types = [...new Set(allBottles.filter(b => b.type).map(b => b.type))].sort();
+    const activeList = bottles || allBottles.filter(b => !isArchived_(b));
+    const types = [...new Set(activeList.filter(b => b.type).map(b => b.type))].sort();
     types.forEach(t => {
       const opt = document.createElement('option');
       opt.value       = t;
@@ -541,7 +711,8 @@ const AdminApp = (() => {
     const type   = document.getElementById('admin-filter-type').value;
     const search = document.getElementById('admin-search').value.toLowerCase().trim();
 
-    filteredBottles = allBottles.filter(b => {
+    const activeBottles = allBottles.filter(b => !isArchived_(b));
+    filteredBottles = activeBottles.filter(b => {
       if (type && b.type !== type) return false;
       if (search) {
         const hay = [b.producteur, b.cuvee, b.appellation, b.region, b.pays]
@@ -572,6 +743,9 @@ const AdminApp = (() => {
     document.getElementById('admin-error').classList.toggle('hidden', state !== 'error');
     document.getElementById('admin-empty').classList.toggle('hidden', state !== 'empty');
     document.getElementById('admin-table-wrapper').classList.toggle('hidden', state !== 'table');
+    // La section archives est visible dès qu'il y a des bouteilles archivées (hors chargement/erreur)
+    const showArchived = archivedBottles.length > 0 && state !== 'loading' && state !== 'error';
+    document.getElementById('admin-archived-section').classList.toggle('hidden', !showArchived);
   }
 
   // ── Notifications ─────────────────────────────────────────────────────────
@@ -613,6 +787,8 @@ const AdminApp = (() => {
     hideForm,
     handleSubmit,
     handleDelete,
+    handleUnarchive,
+    closeArchivedDetail,
     lookupOFF,
     loadBottles,
     openLayoutEditor,

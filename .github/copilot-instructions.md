@@ -45,4 +45,4 @@ public/js/
 ## Modèle de données bouteille
 
 Voir `docs/adr/006-modele-donnees-bouteille.md` pour le modèle complet.  
-Champs clés : `id, type, producteur, cuvee, millesime, appellation, region, pays, cepages, volume, degre_alcool, code_barres, photo_url, rang, colonne, quantite, date_achat, prix_achat, valeur_estimee, notes_personnelles`
+Champs clés : `id, type, producteur, cuvee, millesime, appellation, region, pays, cepages, volume, degre_alcool, code_barres, photo_url, rang, colonne, date_achat, prix_achat, valeur_estimee, notes_personnelles`

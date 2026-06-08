@@ -6,7 +6,7 @@
 // les valeurs sensibles (ce fichier est dans .gitignore).
 
 const CONFIG = {
-  SHEETS_API_URL:      'https://script.google.com/macros/s/AKfycby5k9MXyfKieCz3oifAvPLd4jJ9MO_06_o3JiziOueKkPm6nPyZlH7x5684cY_b9DPdZw/exec', 
+  SHEETS_API_URL:      'https://script.google.com/macros/s/AKfycbyhOQxO4FpPyqHNAa5nuUe79ydpxHs_Cc63Q7ddTVOYkaBbcyp2uEQw1dA4fetQYRteWA/exec', 
   ADMIN_PASSWORD_HASH: 'ebd66b3f786d51c51667857a17ab51719e102138bc5146dbc37def295343ae33',
 
   OFF_API_BASE:   'https://world.openfoodfacts.org',

@@ -651,7 +651,7 @@ const AdminApp = (() => {
         <td class="td-actions">
           <button
             class="btn btn--ghost btn--sm"
-            onclick="AdminApp.showForm(${JSON.stringify(b).replace(/</g, '\\u003c')})"
+            data-action="edit"
             aria-label="Modifier ${escapeHtml_(b.cuvee || '')}"
           >
             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
@@ -673,6 +673,7 @@ const AdminApp = (() => {
           </button>
         </td>
       `;
+      tr.querySelector('[data-action="edit"]').addEventListener('click', () => showForm(b));
       tbody.appendChild(tr);
     });
   }

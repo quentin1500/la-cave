@@ -4,6 +4,7 @@
 // ============================================================
 
 var SHEET_NAME = 'Bouteilles';
+var LAYOUT_SHEET_NAME = 'Layout';
 
 var HEADERS = [
   'id', 'type', 'producteur', 'cuvee', 'millesime', 'appellation',
@@ -186,10 +187,13 @@ function deleteBottle_(id) {
 
 // ── Layout (plan de la cave) ─────────────────────────────────────────────
 function getLayout_() {
-  var layout = PropertiesService.getScriptProperties().getProperty('CAVE_LAYOUT');
-  if (!layout) return { layout: null };
+  var ss = SpreadsheetApp.getActiveSpreadsheet();
+  var sheet = ss.getSheetByName(LAYOUT_SHEET_NAME);
+  if (!sheet) return { layout: null };
+  var value = sheet.getRange('A1').getValue();
+  if (!value) return { layout: null };
   try {
-    return { layout: JSON.parse(layout) };
+    return { layout: JSON.parse(value) };
   } catch (e) {
     return { layout: null };
   }
@@ -198,7 +202,12 @@ function getLayout_() {
 function saveLayout_(data) {
   try {
     var json = typeof data === 'string' ? data : JSON.stringify(data);
-    PropertiesService.getScriptProperties().setProperty('CAVE_LAYOUT', json);
+    var ss = SpreadsheetApp.getActiveSpreadsheet();
+    var sheet = ss.getSheetByName(LAYOUT_SHEET_NAME);
+    if (!sheet) {
+      sheet = ss.insertSheet(LAYOUT_SHEET_NAME);
+    }
+    sheet.getRange('A1').setValue(json);
     return { success: true };
   } catch (e) {
     return { error: 'Impossible de sauvegarder le layout : ' + e.message };

@@ -55,7 +55,7 @@ Introduction possible d'un champ `section` ou `armoire` si l'utilisateur possèd
 
 Dans le Lot 2 l'application introduit un plan de cave visuel :
 
-- Un **layout** représentant le plan (slots positionnés librement) est stocké côté serveur (Script Properties / Apps Script).
+- Un **layout** représentant le plan (slots positionnés librement) est stocké dans l'onglet `Layout` du Google Sheet (cellule A1, JSON sérialisé), lu/écrit via Apps Script.
 - Chaque slot peut être un carré représentant un emplacement pour une bouteille, avec `x`, `y`, `size` et `id`.
 - Le modèle de bouteille peut référencer un `slot_id` optionnel pour lier une bouteille à un emplacement graphique.
 

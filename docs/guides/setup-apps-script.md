@@ -10,7 +10,8 @@ Ce guide explique comment connecter l'application La Cave à un Google Sheet via
 2. Créer un nouveau fichier, le nommer **La Cave** (ou tout autre nom)
 3. Renommer la première feuille en **`Bouteilles`** (exact, respecter la casse)
 
-> La première ligne des en-têtes sera créée automatiquement par Apps Script au premier déploiement.
+> La première ligne des en-têtes sera créée automatiquement par Apps Script au premier déploiement.  
+> Un deuxième onglet **`Layout`** sera créé automatiquement lors du premier enregistrement du plan de cave.
 
 ---
 
@@ -85,7 +86,7 @@ Pour vérifier que l'API supporte l'archivage et le layout :
 VOTRE_URL?action=getLayout
 ```
 
-La réponse vaut `{"layout": null}` si aucun layout n'a été sauvegardé.
+La réponse vaut `{"layout": null}` si aucun layout n'a été sauvegardé (onglet `Layout` absent ou cellule A1 vide).
 
 - Tester l'archivage : appeler l'endpoint `POST` avec `action=delete` et un `id` (le serveur archive la ligne au lieu de la supprimer). Vous pouvez fournir `comment` dans le payload pour enregistrer un commentaire d'archivage.
 
@@ -115,4 +116,5 @@ Après une modification du fichier `Code.gs` :
 | Erreur 401 dans la console | La clé API est incorrecte ou non configurée |
 | Erreur CORS dans la console | Vérifier que le Content-Type est `text/plain` dans le code JS |
 | Tableau vide malgré des données | Vérifier que la feuille est bien nommée `Bouteilles` |
+| Layout non sauvegardé | Vérifier que l'onglet `Layout` existe (créé automatiquement au premier `saveLayout`) |
 | Erreur d'autorisation au déploiement | Révoquer et re-autoriser dans [myaccount.google.com/permissions](https://myaccount.google.com/permissions) |

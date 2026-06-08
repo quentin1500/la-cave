@@ -28,11 +28,10 @@ Navigateur  →  fetch()  →  Apps Script Web App  →  Google Sheets
 - La clé API est stockée dans les **Script Properties** (non exposée dans le code source)
 - Toute opération d'écriture valide la clé API avant d'exécuter
 
-### Feuille Google Sheets
+### Feuilles Google Sheets
 
-- Nom de feuille : `Bouteilles`
-- La première ligne contient les en-têtes (noms des champs)
-- Chaque ligne suivante est une bouteille
+- Feuille `Bouteilles` : inventaire principal — la première ligne contient les en-têtes, chaque ligne suivante est une bouteille
+- Feuille `Layout` : plan visuel de la cave — la cellule A1 contient le JSON du layout ; créée automatiquement par Apps Script si absente
 
 ### Contournement CORS
 

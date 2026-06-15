@@ -12,19 +12,8 @@ const PublicApp = (() => {
   let filteredBottles = [];
 
   // ── SVG bouteille (réutilisé comme placeholder) ───────────────────────────
-  const BOTTLE_SVG = `<svg viewBox="0 0 40 100" fill="currentColor" xmlns="http://www.w3.org/2000/svg" width="44" height="110" aria-hidden="true">
-    <rect x="17" y="0" width="6" height="4" rx="2"/>
-    <rect x="15" y="4" width="10" height="6" rx="1"/>
-    <path d="M14 10 C9 22 7 34 7 46 L7 87 Q7 97 20 97 Q33 97 33 87 L33 46 C33 34 31 22 26 10 Z"/>
-    <rect x="9" y="52" width="22" height="24" rx="2" opacity="0.2"/>
-  </svg>`;
-
-  const BOTTLE_SVG_LG = `<svg viewBox="0 0 40 100" fill="currentColor" xmlns="http://www.w3.org/2000/svg" width="80" height="200" aria-hidden="true">
-    <rect x="17" y="0" width="6" height="4" rx="2"/>
-    <rect x="15" y="4" width="10" height="6" rx="1"/>
-    <path d="M14 10 C9 22 7 34 7 46 L7 87 Q7 97 20 97 Q33 97 33 87 L33 46 C33 34 31 22 26 10 Z"/>
-    <rect x="9" y="52" width="22" height="24" rx="2" opacity="0.2"/>
-  </svg>`;
+  const BOTTLE_SVG    = bottleSvg(44, 110);
+  const BOTTLE_SVG_LG = bottleSvg(80, 200);
 
   // ── Initialisation ────────────────────────────────────────────────────────
 

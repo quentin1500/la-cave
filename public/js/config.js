@@ -50,6 +50,30 @@ const TYPE_COLORS = {
   autre:     '#605048',
 };
 
+// ── SVG bouteille ────────────────────────────────────────────────────────
+// Source de vérité unique pour la forme de la bouteille.
+// bottleSvg(w, h) génère le SVG complet ; injectBottleSprite_ expose le symbol
+// #bottle-icon utilisé par les <use href="#bottle-icon"/> des pages HTML.
+const BOTTLE_SVG_PATH = 'M26 4 H41 C43 4 43 4 43 7 V19 C43 22 43 22 41 22 V40 C41 44 44 48 48 52 C53 57 60 63 60 72 V146 C60 156 60 156 44 156 H23 C7 156 7 156 7 146 V72 C7 63 14 57 19 52 C23 48 26 44 26 40 V22 C24 22 24 22 24 19 V7 C24 4 24 4 26 4 Z';
+
+function bottleSvg(width, height) {
+  return '<svg viewBox="0 0 67 160" fill="currentColor" xmlns="http://www.w3.org/2000/svg"'
+    + ' width="' + width + '" height="' + height + '" aria-hidden="true">'
+    + '<path d="' + BOTTLE_SVG_PATH + '"/>'
+    + '</svg>';
+}
+
+(function injectBottleSprite_() {
+  const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+  svg.setAttribute('style', 'display:none');
+  svg.setAttribute('aria-hidden', 'true');
+  svg.innerHTML =
+    '<symbol id="bottle-icon" viewBox="0 0 67 160">'
+    + '<path d="' + BOTTLE_SVG_PATH + '"/>'
+    + '</symbol>';
+  document.body.insertAdjacentElement('afterbegin', svg);
+})();
+
 // ── Liste ordonnée des types (pour les selects) ────────────────────────────
 const BOTTLE_TYPES = [
   'rouge', 'blanc', 'rose', 'champagne', 'cremant',

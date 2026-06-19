@@ -4,15 +4,21 @@
 // ============================================================
 
 var SHEET_NAME = 'Bouteilles';
-var LAYOUT_SHEET_NAME = 'Layout';
+var LOCALISATIONS_SHEET_NAME = 'Localisations';
+var LAYOUTS_SHEET_NAME = 'Layouts';
 
 var HEADERS = [
   'id', 'type', 'producteur', 'cuvee', 'millesime', 'appellation',
   'region', 'pays', 'cepages', 'volume', 'degre_alcool', 'code_barres',
-  'photo_url', 'rang', 'colonne', 'date_achat', 'prix_achat',
-  'valeur_estimee', 'notes_personnelles', 'date_creation', 'date_modification',
+  'photo_url', 'rang', 'colonne', 'localisation', 'slot_id',
+  'date_achat', 'prix_achat', 'valeur_estimee', 'notes_personnelles',
+  'date_creation', 'date_modification',
   // Archivage
   'archived', 'archived_at', 'archive_comment'
+];
+
+var LOCALISATIONS_HEADERS = [
+  'id', 'nom', 'description', 'date_creation', 'date_modification'
 ];
 
 // ── Handlers HTTP ─────────────────────────────────────────────────────────────
@@ -25,10 +31,15 @@ function doGet(e) {
       return buildResponse_(getAllBottles_());
     }
 
-    if (action === 'getLayout') {
-      return buildResponse_(getLayout_());
+    if (action === 'getLocalisations') {
+      return buildResponse_(getLocalisations_());
     }
-    
+
+    if (action === 'getLayout') {
+      var localisationId = (e.parameter && e.parameter.localisation_id) ? e.parameter.localisation_id : '';
+      return buildResponse_(getLayout_(localisationId));
+    }
+
     return buildResponse_({ error: 'Action non reconnue : ' + action }, 400);
 
   } catch (err) {
@@ -61,14 +72,29 @@ function doPost(e) {
 
     if (action === 'delete') {
       if (!body.id) return buildResponse_({ error: 'Champ id manquant' }, 400);
-      // Support legacy delete -> now archive
       return buildResponse_(deleteBottle_(body.id, body.comment || ''));
     }
 
-    if (action === 'saveLayout') {
+    if (action === 'addLocalisation') {
       if (!body.data) return buildResponse_({ error: 'Champ data manquant' }, 400);
-      if (!validateApiKey_(body.apiKey)) return buildResponse_({ error: 'Non autorisé — clé API invalide' }, 401);
-      return buildResponse_(saveLayout_(body.data));
+      return buildResponse_(addLocalisation_(body.data));
+    }
+
+    if (action === 'updateLocalisation') {
+      if (!body.id) return buildResponse_({ error: 'Champ id manquant' }, 400);
+      if (!body.data) return buildResponse_({ error: 'Champ data manquant' }, 400);
+      return buildResponse_(updateLocalisation_(body.id, body.data));
+    }
+
+    if (action === 'deleteLocalisation') {
+      if (!body.id) return buildResponse_({ error: 'Champ id manquant' }, 400);
+      return buildResponse_(deleteLocalisation_(body.id));
+    }
+
+    if (action === 'saveLayout') {
+      if (!body.localisation_id) return buildResponse_({ error: 'Champ localisation_id manquant' }, 400);
+      if (!body.data) return buildResponse_({ error: 'Champ data manquant' }, 400);
+      return buildResponse_(saveLayout_(body.localisation_id, body.data));
     }
 
     return buildResponse_({ error: 'Action non reconnue : ' + action }, 400);
@@ -185,32 +211,159 @@ function deleteBottle_(id) {
   return { error: 'Bouteille introuvable : ' + id };
 }
 
-// ── Layout (plan de la cave) ─────────────────────────────────────────────
-function getLayout_() {
-  var ss = SpreadsheetApp.getActiveSpreadsheet();
-  var sheet = ss.getSheetByName(LAYOUT_SHEET_NAME);
-  if (!sheet) return { layout: null };
-  var value = sheet.getRange('A1').getValue();
-  if (!value) return { layout: null };
-  try {
-    return { layout: JSON.parse(value) };
-  } catch (e) {
-    return { layout: null };
+// ── Opérations CRUD Localisations ────────────────────────────────────────────────────
+
+function getLocalisations_() {
+  var sheet = getLocalisationsSheet_();
+  var data = sheet.getDataRange().getValues();
+
+  if (data.length <= 1) return [];
+
+  var headers = data[0];
+  var localisations = [];
+
+  for (var i = 1; i < data.length; i++) {
+    var row = data[i];
+    if (!row[0]) continue;
+    var loc = {};
+    for (var j = 0; j < headers.length; j++) {
+      loc[headers[j]] = row[j] !== undefined ? row[j] : '';
+    }
+    localisations.push(loc);
   }
+
+  return localisations;
 }
 
-function saveLayout_(data) {
+function addLocalisation_(data) {
+  var sheet = getLocalisationsSheet_();
+  var now = new Date().toISOString();
+
+  data.date_creation = now;
+  data.date_modification = now;
+
+  if (!data.id) {
+    data.id = Utilities.getUuid();
+  }
+
+  var row = LOCALISATIONS_HEADERS.map(function(header) {
+    return data[header] !== undefined ? data[header] : '';
+  });
+
+  sheet.appendRow(row);
+  return { success: true, id: data.id };
+}
+
+function updateLocalisation_(id, data) {
+  var sheet = getLocalisationsSheet_();
+  var sheetData = sheet.getDataRange().getValues();
+  var headers = sheetData[0];
+  var idIndex = headers.indexOf('id');
+
+  if (idIndex === -1) throw new Error('Colonne id introuvable');
+
+  for (var i = 1; i < sheetData.length; i++) {
+    if (String(sheetData[i][idIndex]) === String(id)) {
+      data.date_modification = new Date().toISOString();
+      data.id = id;
+      data.date_creation = sheetData[i][headers.indexOf('date_creation')] || new Date().toISOString();
+
+      var updatedRow = headers.map(function(header, j) {
+        return data[header] !== undefined ? data[header] : sheetData[i][j];
+      });
+
+      sheet.getRange(i + 1, 1, 1, updatedRow.length).setValues([updatedRow]);
+      return { success: true, id: id };
+    }
+  }
+
+  return { error: 'Localisation introuvable : ' + id };
+}
+
+function deleteLocalisation_(id) {
+  var sheet = getLocalisationsSheet_();
+  var sheetData = sheet.getDataRange().getValues();
+  var headers = sheetData[0];
+  var idIndex = headers.indexOf('id');
+
+  if (idIndex === -1) throw new Error('Colonne id introuvable');
+
+  for (var i = 1; i < sheetData.length; i++) {
+    if (String(sheetData[i][idIndex]) === String(id)) {
+      sheet.deleteRow(i + 1);
+      deleteLayout_(id);
+      return { success: true };
+    }
+  }
+
+  return { error: 'Localisation introuvable : ' + id };
+}
+
+// ── Layout (plan par localisation) ──────────────────────────────────────────────────────────────
+
+function getLayout_(localisationId) {
+  var ss = SpreadsheetApp.getActiveSpreadsheet();
+  var sheet = ss.getSheetByName(LAYOUTS_SHEET_NAME);
+  if (!sheet) return { layout: null };
+
+  var data = sheet.getDataRange().getValues();
+  if (data.length <= 1) return { layout: null };
+
+  // Chaque ligne : [localisation_id, layout_json]
+  for (var i = 1; i < data.length; i++) {
+    if (String(data[i][0]) === String(localisationId)) {
+      try {
+        return { layout: JSON.parse(data[i][1]) };
+      } catch (e) {
+        return { layout: null };
+      }
+    }
+  }
+  return { layout: null };
+}
+
+function saveLayout_(localisationId, data) {
   try {
     var json = typeof data === 'string' ? data : JSON.stringify(data);
     var ss = SpreadsheetApp.getActiveSpreadsheet();
-    var sheet = ss.getSheetByName(LAYOUT_SHEET_NAME);
+    var sheet = ss.getSheetByName(LAYOUTS_SHEET_NAME);
     if (!sheet) {
-      sheet = ss.insertSheet(LAYOUT_SHEET_NAME);
+      sheet = ss.insertSheet(LAYOUTS_SHEET_NAME);
+      sheet.appendRow(['localisation_id', 'layout_json']);
+      sheet.setFrozenRows(1);
+      sheet.getRange(1, 1, 1, 2)
+        .setBackground('#722F37')
+        .setFontColor('#FFFFFF')
+        .setFontWeight('bold');
     }
-    sheet.getRange('A1').setValue(json);
+
+    var sheetData = sheet.getDataRange().getValues();
+    for (var i = 1; i < sheetData.length; i++) {
+      if (String(sheetData[i][0]) === String(localisationId)) {
+        sheet.getRange(i + 1, 2).setValue(json);
+        return { success: true };
+      }
+    }
+
+    // Nouvelle entrée
+    sheet.appendRow([localisationId, json]);
     return { success: true };
   } catch (e) {
     return { error: 'Impossible de sauvegarder le layout : ' + e.message };
+  }
+}
+
+function deleteLayout_(localisationId) {
+  var ss = SpreadsheetApp.getActiveSpreadsheet();
+  var sheet = ss.getSheetByName(LAYOUTS_SHEET_NAME);
+  if (!sheet) return;
+
+  var data = sheet.getDataRange().getValues();
+  for (var i = 1; i < data.length; i++) {
+    if (String(data[i][0]) === String(localisationId)) {
+      sheet.deleteRow(i + 1);
+      return;
+    }
   }
 }
 
@@ -221,12 +374,27 @@ function getSheet_() {
   var sheet = ss.getSheetByName(SHEET_NAME);
 
   if (!sheet) {
-    // Créer la feuille avec les en-têtes si elle n'existe pas
     sheet = ss.insertSheet(SHEET_NAME);
     sheet.appendRow(HEADERS);
     sheet.setFrozenRows(1);
-    // Style en-têtes
     sheet.getRange(1, 1, 1, HEADERS.length)
+      .setBackground('#722F37')
+      .setFontColor('#FFFFFF')
+      .setFontWeight('bold');
+  }
+
+  return sheet;
+}
+
+function getLocalisationsSheet_() {
+  var ss = SpreadsheetApp.getActiveSpreadsheet();
+  var sheet = ss.getSheetByName(LOCALISATIONS_SHEET_NAME);
+
+  if (!sheet) {
+    sheet = ss.insertSheet(LOCALISATIONS_SHEET_NAME);
+    sheet.appendRow(LOCALISATIONS_HEADERS);
+    sheet.setFrozenRows(1);
+    sheet.getRange(1, 1, 1, LOCALISATIONS_HEADERS.length)
       .setBackground('#722F37')
       .setFontColor('#FFFFFF')
       .setFontWeight('bold');

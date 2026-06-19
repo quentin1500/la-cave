@@ -538,9 +538,63 @@ h4 { font-size: var(--text-lg);  font-weight: 500; }
   border-radius: var(--r-md);
   padding: var(--sp-4);
   margin-bottom: var(--sp-4);
+}
+.modal-location__label {
+  font-size: var(--text-xs);
+  color: var(--c-text-muted);
+  text-transform: uppercase;
+  letter-spacing: .07em;
+  margin-bottom: var(--sp-2);
+}
+.modal-location__loc {
+  font-size: var(--text-sm);
+  font-weight: 600;
+  color: var(--c-gold);
+  margin-bottom: 2px;
+}
+.modal-location__coords {
+  font-size: var(--text-xs);
+  color: var(--c-text-muted);
+  margin-bottom: var(--sp-3);
+}
+
+/* Mini-plan de cave dans le modal */
+.modal-slot-plan {
+  margin-top: var(--sp-3);
+  overflow: auto;
+  border-radius: var(--r-sm);
+}
+.modal-slot-plan__canvas {
+  position: relative;
+}
+.modal-slot-plan__slot {
+  position: absolute;
   display: flex;
-  justify-content: space-between;
   align-items: center;
+  justify-content: center;
+  text-align: center;
+  word-break: break-word;
+  background: var(--c-bg);
+  border: 1px solid var(--c-border);
+  border-radius: 3px;
+  color: var(--c-text-subtle);
+  padding: 2px;
+  box-sizing: border-box;
+  font-size: 11px;
+}
+.modal-slot-plan__slot--highlighted {
+  background: var(--c-bordeaux-dark);
+  border: 2px solid var(--c-gold);
+  color: var(--c-gold);
+  font-weight: 700;
+  box-shadow: 0 0 8px rgba(200, 160, 53, 0.4);
+  z-index: 1;
+}
+.modal-slot-plan__loading {
+  font-size: var(--text-xs);
+  color: var(--c-text-subtle);
+  font-style: italic;
+  padding: var(--sp-2) 0;
 }
 .modal__notes {
   background: var(--c-bg-raised);
@@ -816,6 +870,63 @@ textarea.form-control { resize: vertical; min-height: 90px; }
   gap: var(--sp-3);
   padding-top: var(--sp-4);
   border-top: 1px solid var(--c-border);
+}
+
+/* ── A5b. Sélecteur de slot (plan de cave) ─────────────────────── */
+.slot-picker {
+  position: relative;
+  border: 1px solid var(--c-border);
+  border-radius: var(--r-md);
+  background: var(--c-bg);
+  overflow: auto;
+  min-height: 100px;
+  margin-top: var(--sp-2);
+}
+
+.slot-picker__canvas {
+  position: relative;
+}
+
+.slot-picker__slot {
+  position: absolute;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: var(--text-xs);
+  text-align: center;
+  word-break: break-word;
+  background: var(--c-bg-raised);
+  border: 2px solid var(--c-border);
+  border-radius: var(--r-sm);
+  cursor: pointer;
+  color: var(--c-text-muted);
+  padding: 2px;
+  box-sizing: border-box;
+  transition: border-color var(--t-fast), background var(--t-fast), color var(--t-fast);
+  user-select: none;
+}
+.slot-picker__slot:hover {
+  border-color: var(--c-bordeaux-light);
+  background: var(--c-bg-card);
+  color: var(--c-text);
+}
+.slot-picker__slot:focus-visible {
+  outline: 2px solid var(--c-bordeaux);
+  outline-offset: 2px;
+}
+.slot-picker__slot--selected {
+  border-color: var(--c-gold);
+  background: var(--c-bg-card-hov);
+  color: var(--c-gold);
+  font-weight: 600;
+}
+
+.slot-picker__empty {
+  padding: var(--sp-4);
+  font-size: var(--text-sm);
+  color: var(--c-text-subtle);
+  font-style: italic;
+  text-align: center;
 }
 
 /* ── A5. Recherche OpenFoodFacts ───────────────────────────────── */

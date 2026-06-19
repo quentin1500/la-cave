@@ -7,10 +7,13 @@
 const AdminApp = (() => {
 
   // ── État ──────────────────────────────────────────────────────────────────
-  let allBottles        = [];
-  let filteredBottles   = [];
-  let archivedBottles   = [];
-  let _archivePendingId = null;
+  let allBottles          = [];
+  let filteredBottles     = [];
+  let archivedBottles     = [];
+  let _archivePendingId   = null;
+  let _localisations      = [];
+  let _editingLocalisationId = null;
+  let _layoutsCache       = {}; // { [localisationId]: slots[] }
 
   // ── Initialisation ────────────────────────────────────────────────────────
 
@@ -40,6 +43,11 @@ const AdminApp = (() => {
     // Recherche et filtre admin
     document.getElementById('admin-search').addEventListener('input', debounce_(applyAdminFilters_, 280));
     document.getElementById('admin-filter-type').addEventListener('change', applyAdminFilters_);
+
+    // Slot dynamique selon la localisation choisie
+    document.getElementById('f-localisation').addEventListener('change', () => {
+      loadSlotsForLocalisation_(document.getElementById('f-localisation').value);
+    });
 
     // Remplir le select de types dans le formulaire
     populateTypeSelect_();
@@ -89,6 +97,9 @@ const AdminApp = (() => {
   function showApp_() {
     document.getElementById('auth-overlay').classList.add('hidden');
     document.getElementById('admin-app').classList.remove('hidden');
+    loadLocalisations_().then(() => {
+      populateLocalisationSelect_();
+    });
     loadBottles();
   }
 
@@ -101,6 +112,12 @@ const AdminApp = (() => {
       allBottles = CONFIG.isConfigured
         ? await SheetsAPI.getAllBottles()
         : SAMPLE_BOTTLES;
+
+      // S'assurer que les localisations sont chargées pour l'affichage
+      if (CONFIG.isConfigured && _localisations.length === 0) {
+        await loadLocalisations_();
+        populateLocalisationSelect_();
+      }
 
       // Séparer les bouteilles actives et archivées
       archivedBottles = allBottles.filter(isArchived_);
@@ -204,10 +221,209 @@ const AdminApp = (() => {
     }
   }
 
-  // ── Éditeur de layout (plan de la cave) ─────────────────────────────────
+  // ── Gestion des localisations ────────────────────────────────────────────
+
+  async function loadLocalisations_() {
+    if (!CONFIG.isConfigured) {
+      _localisations = [];
+      return;
+    }
+    try {
+      _localisations = await SheetsAPI.getLocalisations();
+    } catch (err) {
+      console.error('Erreur chargement localisations :', err);
+      _localisations = [];
+    }
+  }
+
+  function populateLocalisationSelect_() {
+    const select = document.getElementById('f-localisation');
+    if (!select) return;
+    while (select.options.length > 1) select.remove(1);
+    _localisations.forEach(loc => {
+      const opt = document.createElement('option');
+      opt.value       = loc.id;
+      opt.textContent = loc.nom;
+      select.appendChild(opt);
+    });
+  }
+
+  function openLocalisationsManager() {
+    let modal = document.getElementById('localisations-modal');
+    if (!modal) {
+      modal = document.createElement('div');
+      modal.id = 'localisations-modal';
+      modal.className = 'modal hidden';
+      modal.setAttribute('role', 'dialog');
+      modal.setAttribute('aria-modal', 'true');
+      modal.setAttribute('aria-labelledby', 'localisations-modal-title');
+      modal.innerHTML = `
+        <div class="modal__backdrop" id="localisations-backdrop"></div>
+        <div class="modal__panel" tabindex="-1" style="width:90vw;max-width:700px;" id="localisations-panel">
+          <button class="modal__close" id="localisations-close" aria-label="Fermer">✕</button>
+          <div style="padding:var(--sp-8)">
+            <h2 id="localisations-modal-title">Localisations</h2>
+            <p style="font-size:var(--text-sm);color:var(--c-text-muted);margin-bottom:var(--sp-5)">
+              Gérez vos espaces de stockage. Chaque localisation dispose d'un plan de cave éditable indépendant.
+            </p>
+            <div id="localisations-list"></div>
+            <div style="margin-top:var(--sp-6);padding-top:var(--sp-5);border-top:1px solid var(--c-border)">
+              <h3 id="loc-form-title" style="font-size:var(--text-base);margin-bottom:var(--sp-4)">Ajouter une localisation</h3>
+              <div class="form-group">
+                <label for="loc-nom">Nom <span class="required" aria-label="obligatoire">*</span></label>
+                <input type="text" id="loc-nom" class="form-control" placeholder="ex: Cave principale, Armoire à vins">
+              </div>
+              <div class="form-group">
+                <label for="loc-description">Description</label>
+                <input type="text" id="loc-description" class="form-control" placeholder="ex: Cave sous-sol, 14 °C constant">
+              </div>
+              <div style="display:flex;gap:var(--sp-3);margin-top:var(--sp-4)">
+                <button type="button" id="loc-cancel-btn" class="btn btn--ghost" style="display:none">Annuler</button>
+                <button type="button" id="loc-save-btn" class="btn btn--primary">Ajouter</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      `;
+      document.body.appendChild(modal);
+      document.getElementById('localisations-close').addEventListener('click', closeLocalisationsManager);
+      document.getElementById('localisations-backdrop').addEventListener('click', closeLocalisationsManager);
+      document.getElementById('loc-save-btn').addEventListener('click', saveLocalisation_);
+      document.getElementById('loc-cancel-btn').addEventListener('click', cancelLocalisationEdit_);
+    }
+
+    _editingLocalisationId = null;
+    document.body.style.overflow = 'hidden';
+    modal.classList.remove('hidden');
+    renderLocalisationsList_();
+    document.getElementById('localisations-panel').focus();
+  }
+
+  function closeLocalisationsManager() {
+    const modal = document.getElementById('localisations-modal');
+    if (modal) modal.classList.add('hidden');
+    document.body.style.overflow = '';
+    _editingLocalisationId = null;
+  }
+
+  function renderLocalisationsList_() {
+    const list = document.getElementById('localisations-list');
+    if (!list) return;
+
+    if (_localisations.length === 0) {
+      list.innerHTML = `<p style="font-size:var(--text-sm);color:var(--c-text-subtle);font-style:italic">Aucune localisation créée.</p>`;
+      return;
+    }
+
+    list.innerHTML = '';
+    _localisations.forEach(loc => {
+      const item = document.createElement('div');
+      item.style.cssText = 'display:flex;align-items:center;gap:var(--sp-3);padding:var(--sp-3) 0;border-bottom:1px solid var(--c-border)';
+      item.innerHTML = `
+        <div style="flex:1;min-width:0">
+          <div style="font-weight:500">${escapeHtml_(loc.nom)}</div>
+          ${loc.description ? `<div style="font-size:var(--text-sm);color:var(--c-text-muted)">${escapeHtml_(loc.description)}</div>` : ''}
+        </div>
+        <button class="btn btn--ghost btn--sm" data-action="plan" data-id="${escapeHtml_(loc.id)}" data-nom="${escapeHtml_(loc.nom)}" aria-label="Éditer le plan de ${escapeHtml_(loc.nom)}">Plan</button>
+        <button class="btn btn--ghost btn--sm" data-action="edit" data-id="${escapeHtml_(loc.id)}" aria-label="Modifier ${escapeHtml_(loc.nom)}">Modifier</button>
+        <button class="btn btn--danger btn--sm" data-action="delete" data-id="${escapeHtml_(loc.id)}" aria-label="Supprimer ${escapeHtml_(loc.nom)}">Supprimer</button>
+      `;
+
+      item.querySelector('[data-action="plan"]').addEventListener('click', e => {
+        const id  = e.currentTarget.dataset.id;
+        const nom = e.currentTarget.dataset.nom;
+        closeLocalisationsManager();
+        openLayoutEditor(id, nom);
+      });
+      item.querySelector('[data-action="edit"]').addEventListener('click', e => {
+        editLocalisation_(e.currentTarget.dataset.id);
+      });
+      item.querySelector('[data-action="delete"]').addEventListener('click', e => {
+        removeLocalisation_(e.currentTarget.dataset.id);
+      });
+
+      list.appendChild(item);
+    });
+  }
+
+  function editLocalisation_(id) {
+    const loc = _localisations.find(l => l.id === id);
+    if (!loc) return;
+    _editingLocalisationId = id;
+    document.getElementById('loc-form-title').textContent = 'Modifier la localisation';
+    document.getElementById('loc-nom').value = loc.nom || '';
+    document.getElementById('loc-description').value = loc.description || '';
+    document.getElementById('loc-save-btn').textContent = 'Enregistrer';
+    document.getElementById('loc-cancel-btn').style.display = '';
+    document.getElementById('loc-nom').focus();
+  }
+
+  function cancelLocalisationEdit_() {
+    _editingLocalisationId = null;
+    document.getElementById('loc-form-title').textContent = 'Ajouter une localisation';
+    document.getElementById('loc-nom').value = '';
+    document.getElementById('loc-description').value = '';
+    document.getElementById('loc-save-btn').textContent = 'Ajouter';
+    document.getElementById('loc-cancel-btn').style.display = 'none';
+  }
+
+  async function saveLocalisation_() {
+    const nom = (document.getElementById('loc-nom').value || '').trim();
+    if (!nom) {
+      document.getElementById('loc-nom').focus();
+      return;
+    }
+    const description = (document.getElementById('loc-description').value || '').trim();
+    const saveBtn = document.getElementById('loc-save-btn');
+    saveBtn.disabled = true;
+
+    try {
+      if (_editingLocalisationId) {
+        await SheetsAPI.updateLocalisation(_editingLocalisationId, { nom, description });
+        notify_('Localisation mise à jour.', 'success');
+      } else {
+        await SheetsAPI.addLocalisation({ nom, description });
+        notify_('Localisation ajoutée.', 'success');
+      }
+      await loadLocalisations_();
+      cancelLocalisationEdit_();
+      renderLocalisationsList_();
+      populateLocalisationSelect_();
+    } catch (err) {
+      console.error('Erreur sauvegarde localisation :', err);
+      notify_(`Erreur : ${err.message}`, 'error');
+    } finally {
+      saveBtn.disabled = false;
+    }
+  }
+
+  async function removeLocalisation_(id) {
+    const loc = _localisations.find(l => l.id === id);
+    const nom = loc ? loc.nom : 'cette localisation';
+    if (!confirm(`Supprimer "${escapeHtml_(nom)}" ?\nLe plan associé sera également supprimé.\nLes bouteilles référençant cette localisation ne seront pas modifiées.`)) return;
+
+    try {
+      await SheetsAPI.deleteLocalisation(id);
+      notify_('Localisation supprimée.', 'success');
+      await loadLocalisations_();
+      renderLocalisationsList_();
+      populateLocalisationSelect_();
+    } catch (err) {
+      console.error('Erreur suppression localisation :', err);
+      notify_(`Erreur : ${err.message}`, 'error');
+    }
+  }
+
+  // ── Éditeur de layout (plan par localisation) ────────────────────────────
   let _layout = null;
-  function openLayoutEditor() {
-    // Créer modal si nécessaire
+  let _layoutLocalisationId = null;
+
+  function openLayoutEditor(localisationId, localisationNom) {
+    _layoutLocalisationId = localisationId || null;
+    const title = localisationNom
+      ? `Éditeur du plan — ${localisationNom}`
+      : 'Éditeur du plan de la cave';
+
     let modal = document.getElementById('layout-modal');
     if (!modal) {
       modal = document.createElement('div');
@@ -217,7 +433,7 @@ const AdminApp = (() => {
         <div class="modal__backdrop" id="layout-backdrop"></div>
         <div class="modal__panel" id="layout-panel" style="width:90vw;max-width:1000px;">
           <button class="modal__close" id="layout-close">✕</button>
-          <h2>Éditeur du plan de la cave</h2>
+          <h2 id="layout-modal-title"></h2>
           <div style="display:flex;gap:1rem;margin-top:0.5rem;">
             <button id="layout-add-slot" class="btn btn--secondary">Ajouter un emplacement</button>
             <button id="layout-save" class="btn btn--primary">Enregistrer</button>
@@ -234,6 +450,9 @@ const AdminApp = (() => {
       document.getElementById('layout-backdrop').addEventListener('click', closeLayoutEditor);
     }
 
+    const titleEl = document.getElementById('layout-modal-title');
+    if (titleEl) titleEl.textContent = title;
+
     document.body.style.overflow = 'hidden';
     modal.classList.remove('hidden');
     loadLayout_();
@@ -247,7 +466,7 @@ const AdminApp = (() => {
 
   async function loadLayout_() {
     try {
-      const layout = CONFIG.isConfigured ? await SheetsAPI.getLayout() : null;
+      const layout = CONFIG.isConfigured ? await SheetsAPI.getLayout(_layoutLocalisationId || '') : null;
       _layout = layout || { slots: [] };
       renderLayout_();
     } catch (err) {
@@ -322,12 +541,126 @@ const AdminApp = (() => {
 
   async function saveLayout_() {
     try {
-      await SheetsAPI.saveLayout(_layout);
-      notify_('Plan de cave enregistré.', 'success');
+      await SheetsAPI.saveLayout(_layoutLocalisationId || '', _layout);
+      // Invalider le cache pour cette localisation afin d'être synchronisé
+      if (_layoutLocalisationId) delete _layoutsCache[_layoutLocalisationId];
+      notify_('Plan enregistré.', 'success');
     } catch (err) {
       console.error('Erreur sauvegarde layout :', err);
       notify_('Erreur lors de l\'enregistrement du plan.', 'error');
     }
+  }
+
+  // ── Sélection d'emplacement (slot) ────────────────────────────────────────
+
+  /**
+   * Charge les slots du plan d'une localisation (avec cache), puis affiche le plan visuel.
+   * @param {string} locId - Id de la localisation, ou chaîne vide
+   * @param {string} [currentSlotId] - Slot à pré-sélectionner
+   */
+  async function loadSlotsForLocalisation_(locId, currentSlotId) {
+    const slotGroup  = document.getElementById('f-slot-group');
+    const slotHidden = document.getElementById('f-slot');
+    if (!slotGroup) return;
+
+    if (!locId) {
+      slotGroup.classList.add('hidden');
+      if (slotHidden) slotHidden.value = '';
+      const picker = document.getElementById('f-slot-picker');
+      if (picker) picker.innerHTML = '';
+      return;
+    }
+
+    let slots = [];
+    if (_layoutsCache[locId]) {
+      slots = _layoutsCache[locId];
+    } else if (CONFIG.isConfigured) {
+      try {
+        const layout = await SheetsAPI.getLayout(locId);
+        slots = (layout && layout.slots) ? layout.slots : [];
+        _layoutsCache[locId] = slots;
+      } catch (err) {
+        console.error('Erreur chargement slots :', err);
+        slots = [];
+      }
+    }
+
+    renderSlotPicker_(slots, currentSlotId);
+    slotGroup.classList.remove('hidden');
+  }
+
+  /**
+   * Affiche le plan de cave (slots positionnels) dans le sélecteur visuel.
+   * Un clic sur un slot le sélectionne (re-clic = désélection).
+   * @param {Array}  slots           - Liste de slots {id, x, y, size, label}
+   * @param {string} [currentSlotId] - Slot pré-sélectionné
+   */
+  function renderSlotPicker_(slots, currentSlotId) {
+    const picker = document.getElementById('f-slot-picker');
+    const hidden = document.getElementById('f-slot');
+    if (!picker || !hidden) return;
+
+    picker.innerHTML = '';
+    hidden.value = currentSlotId || '';
+
+    if (!slots || slots.length === 0) {
+      picker.innerHTML = '<p class="slot-picker__empty">Aucun emplacement défini dans le plan. Éditez le plan depuis « Gérer les localisations » pour en ajouter.</p>';
+      return;
+    }
+
+    // Calculer les dimensions du canvas nécessaire
+    let maxRight = 0, maxBottom = 0;
+    slots.forEach(s => {
+      const size = s.size || 60;
+      maxRight   = Math.max(maxRight,  (s.x || 0) + size);
+      maxBottom  = Math.max(maxBottom, (s.y || 0) + size);
+    });
+
+    const canvas = document.createElement('div');
+    canvas.className      = 'slot-picker__canvas';
+    canvas.style.width    = (maxRight  + 16) + 'px';
+    canvas.style.height   = (maxBottom + 16) + 'px';
+    canvas.style.minWidth = '100%';
+
+    slots.forEach((s, idx) => {
+      const el = document.createElement('div');
+      el.className = 'slot-picker__slot';
+      if (s.id === (currentSlotId || '')) el.classList.add('slot-picker__slot--selected');
+      el.style.left   = (s.x || 0) + 'px';
+      el.style.top    = (s.y || 0) + 'px';
+      el.style.width  = (s.size || 60) + 'px';
+      el.style.height = (s.size || 60) + 'px';
+      el.dataset.slotId = s.id;
+      el.textContent    = s.label || String(idx + 1);
+      el.setAttribute('role', 'button');
+      el.setAttribute('tabindex', '0');
+      el.setAttribute('aria-pressed', String(s.id === (currentSlotId || '')));
+      el.setAttribute('aria-label', `Emplacement ${escapeHtml_(s.label || String(idx + 1))}`);
+
+      const toggle = () => {
+        const alreadySelected = hidden.value === s.id;
+        picker.querySelectorAll('.slot-picker__slot').forEach(n => {
+          n.classList.remove('slot-picker__slot--selected');
+          n.setAttribute('aria-pressed', 'false');
+        });
+        if (alreadySelected) {
+          hidden.value = '';
+        } else {
+          el.classList.add('slot-picker__slot--selected');
+          el.setAttribute('aria-pressed', 'true');
+          hidden.value = s.id;
+        }
+      };
+
+      el.addEventListener('click', toggle);
+      el.addEventListener('keydown', e => {
+        if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); toggle(); }
+      });
+
+      canvas.appendChild(el);
+    });
+
+    picker.appendChild(canvas);
   }
 
   // ── Formulaire ────────────────────────────────────────────────────────────
@@ -338,11 +671,16 @@ const AdminApp = (() => {
     const submitEl = document.getElementById('form-submit-btn');
 
     resetForm_();
+    populateLocalisationSelect_();
 
     if (bottle) {
       titleEl.textContent  = 'Modifier la bouteille';
       submitEl.textContent = 'Enregistrer les modifications';
       populateForm_(bottle);
+      // Charger les slots pour la localisation de la bouteille, puis pré-sélectionner le slot
+      if (bottle.localisation) {
+        loadSlotsForLocalisation_(bottle.localisation, bottle.slot_id);
+      }
     } else {
       titleEl.textContent  = 'Ajouter une bouteille';
       submitEl.textContent = 'Ajouter la bouteille';
@@ -365,6 +703,13 @@ const AdminApp = (() => {
     document.getElementById('off-results').innerHTML = '';
     document.getElementById('off-results').classList.add('hidden');
     document.getElementById('off-search-input').value = '';
+    // Masquer le groupe slot et réinitialiser
+    const slotGroup  = document.getElementById('f-slot-group');
+    if (slotGroup) slotGroup.classList.add('hidden');
+    const slotHidden = document.getElementById('f-slot');
+    if (slotHidden) slotHidden.value = '';
+    const slotPicker = document.getElementById('f-slot-picker');
+    if (slotPicker) slotPicker.innerHTML = '';
   }
 
   function populateForm_(bottle) {
@@ -383,6 +728,8 @@ const AdminApp = (() => {
     document.getElementById('f-photo').value          = bottle.photo_url || '';
     document.getElementById('f-rang').value           = bottle.rang || '';
     document.getElementById('f-colonne').value        = bottle.colonne || '';
+    document.getElementById('f-localisation').value   = bottle.localisation || '';
+    // f-slot sera défini après le chargement asynchrone des slots
     document.getElementById('f-date-achat').value     = bottle.date_achat || '';
     document.getElementById('f-prix-achat').value     = bottle.prix_achat || '';
     document.getElementById('f-valeur').value         = bottle.valeur_estimee || '';
@@ -409,6 +756,8 @@ const AdminApp = (() => {
       photo_url:          val('f-photo'),
       rang:               val('f-rang')       ? Number(val('f-rang'))       : '',
       colonne:            val('f-colonne')    ? Number(val('f-colonne'))    : '',
+      localisation:       val('f-localisation'),
+      slot_id:            val('f-slot'),
       date_achat:         val('f-date-achat'),
       prix_achat:         val('f-prix-achat') ? Number(val('f-prix-achat')) : '',
       valeur_estimee:     val('f-valeur')     ? Number(val('f-valeur'))     : '',
@@ -681,8 +1030,17 @@ const AdminApp = (() => {
     bottles.forEach(b => {
       const typeLabel = TYPE_LABELS[b.type] || b.type || '–';
       const typeColor = TYPE_COLORS[b.type] || 'var(--c-type-autre)';
-      const emplacement = (b.rang && b.colonne) ? `R${b.rang} C${b.colonne}` : '–';
-      const prix  = b.prix_achat ? `${Number(b.prix_achat).toFixed(2)} €` : '–';
+      const loc       = b.localisation ? _localisations.find(l => l.id === b.localisation) : null;
+      const locNom    = loc ? loc.nom : null;
+      let slotLabel   = null;
+      if (b.slot_id && loc && _layoutsCache[b.localisation]) {
+        const slot = _layoutsCache[b.localisation].find(s => s.id === b.slot_id);
+        if (slot) slotLabel = slot.label || null;
+      }
+      const rangCol   = (b.rang && b.colonne) ? `R${b.rang} C${b.colonne}` : null;
+      const parts     = [locNom, slotLabel, rangCol].filter(Boolean);
+      const emplacement = parts.join(' · ') || '–';
+      const prix  = b.prix_achat ? `${Number(b.prix_achat).toFixed(2)} €` : '–';
 
       const tr = document.createElement('tr');
       tr.innerHTML = `
@@ -840,6 +1198,8 @@ const AdminApp = (() => {
     closeArchivedDetail,
     lookupOFF,
     loadBottles,
+    openLocalisationsManager,
+    closeLocalisationsManager,
     openLayoutEditor,
   };
 })();

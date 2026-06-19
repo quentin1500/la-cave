@@ -53,20 +53,65 @@ const SheetsAPI = (() => {
   }
 
   /**
-   * Récupère le layout (plan de la cave) stocké côté Apps Script
+   * Récupère toutes les localisations.
+   * @returns {Promise<Array>}
    */
-  async function getLayout() {
-    const url = `${CONFIG.SHEETS_API_URL}?action=getLayout`;
+  async function getLocalisations() {
+    const url = `${CONFIG.SHEETS_API_URL}?action=getLocalisations`;
+    const data = await get_(url);
+    if (data.error) throw new Error(data.error);
+    return Array.isArray(data) ? data : [];
+  }
+
+  /**
+   * Ajoute une nouvelle localisation.
+   * @param {Object} localisation  { nom, description }
+   * @returns {Promise<Object>} { success: true, id }
+   */
+  async function addLocalisation(localisation) {
+    localisation.id = crypto.randomUUID();
+    return post_({ action: 'addLocalisation', data: localisation });
+  }
+
+  /**
+   * Met à jour une localisation existante.
+   * @param {string} id
+   * @param {Object} localisation
+   * @returns {Promise<Object>}
+   */
+  async function updateLocalisation(id, localisation) {
+    return post_({ action: 'updateLocalisation', id, data: localisation });
+  }
+
+  /**
+   * Supprime une localisation et son layout associé.
+   * @param {string} id
+   * @returns {Promise<Object>}
+   */
+  async function deleteLocalisation(id) {
+    return post_({ action: 'deleteLocalisation', id });
+  }
+
+  /**
+   * Récupère le layout d'une localisation spécifique.
+   * @param {string} localisationId
+   * @returns {Promise<Object|null>}
+   */
+  async function getLayout(localisationId) {
+    const url = `${CONFIG.SHEETS_API_URL}?action=getLayout&localisation_id=${encodeURIComponent(localisationId || '')}`;
     const data = await get_(url);
     if (data.error) throw new Error(data.error);
     return data.layout || null;
   }
 
   /**
-   * Sauvegarde le layout (nécessite token admin)
+   * Sauvegarde le layout d'une localisation (nécessite token admin).
+   * @param {string} localisationId
+   * @param {Object} layout
+   * @returns {Promise<Object>}
    */
-  async function saveLayout(layout) {
-    return post_({ action: 'saveLayout', data: layout });
+  async function saveLayout(localisationId, layout) {
+    return post_({ action: 'saveLayout', localisation_id: localisationId, data: layout });
   }
 
   // ── Helpers internes ──────────────────────────────────────────────────────
@@ -98,5 +143,5 @@ const SheetsAPI = (() => {
     return data;
   }
 
-  return { getAllBottles, addBottle, updateBottle, deleteBottle, getLayout, saveLayout };
+  return { getAllBottles, addBottle, updateBottle, deleteBottle, getLocalisations, addLocalisation, updateLocalisation, deleteLocalisation, getLayout, saveLayout };
 })();

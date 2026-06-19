@@ -11,7 +11,9 @@ Ce guide explique comment connecter l'application La Cave à un Google Sheet via
 3. Renommer la première feuille en **`Bouteilles`** (exact, respecter la casse)
 
 > La première ligne des en-têtes sera créée automatiquement par Apps Script au premier déploiement.  
-> Un deuxième onglet **`Layout`** sera créé automatiquement lors du premier enregistrement du plan de cave.
+> Deux onglets supplémentaires seront créés automatiquement par Apps Script selon les besoins :
+> - **`Localisations`** : créé à la première localisation ajoutée
+> - **`Layouts`** : créé au premier enregistrement d'un plan de cave
 
 ---
 
@@ -78,15 +80,23 @@ Vous devez obtenir une réponse JSON :
 ```
 (tableau vide si aucune bouteille n'a encore été ajoutée)
 
-Pour vérifier que l'API supporte l'archivage et le layout :
+Pour vérifier que l'API supporte les localisations et les layouts :
 
-- Tester la récupération du layout (GET) :
+- Tester la récupération des localisations (GET) :
 
 ```
-VOTRE_URL?action=getLayout
+VOTRE_URL?action=getLocalisations
 ```
 
-La réponse vaut `{"layout": null}` si aucun layout n'a été sauvegardé (onglet `Layout` absent ou cellule A1 vide).
+La réponse vaut `[]` si aucune localisation n'a encore été créée.
+
+- Tester la récupération du layout d'une localisation (GET) :
+
+```
+VOTRE_URL?action=getLayout&localisation_id=<id>
+```
+
+La réponse vaut `{"layout": null}` si aucun plan n'a été sauvegardé pour cette localisation.
 
 - Tester l'archivage : appeler l'endpoint `POST` avec `action=delete` et un `id` (le serveur archive la ligne au lieu de la supprimer). Vous pouvez fournir `comment` dans le payload pour enregistrer un commentaire d'archivage.
 

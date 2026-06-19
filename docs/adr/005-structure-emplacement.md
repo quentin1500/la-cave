@@ -50,8 +50,8 @@ Plusieurs niveaux de granularité sont possibles, du plus simple au plus complex
 | Section + casier + rang + colonne (4 niveaux) | Trop complexe pour le besoin initial |
 | Plan de cave cliquable (zones SVG) | Excellent en Lot 2, mais over-engineering pour le Lot 1 |
 
-## Évolution prévue (Lot 2)
-Introduction possible d'un champ `section` ou `armoire` si l'utilisateur possède plusieurs zones de stockage distinctes. Nécessitera un ADR de mise à jour.
+## Évolution — ADR-007 (Lot 2 implémenté)
+L'introduction de la notion de **localisation** (ADR-007) remplace le champ `section` / `armoire` pressenti. Un champ `localisation` (optionnel) est ajouté au modèle bouteille pour référencer un espace de stockage nommé.
 
 Dans le Lot 2 l'application introduit un plan de cave visuel :
 

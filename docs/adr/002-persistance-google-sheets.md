@@ -31,7 +31,8 @@ Navigateur  →  fetch()  →  Apps Script Web App  →  Google Sheets
 ### Feuilles Google Sheets
 
 - Feuille `Bouteilles` : inventaire principal — la première ligne contient les en-têtes, chaque ligne suivante est une bouteille
-- Feuille `Layout` : plan visuel de la cave — la cellule A1 contient le JSON du layout ; créée automatiquement par Apps Script si absente
+- Feuille `Localisations` : espaces de stockage — `id | nom | description | date_creation | date_modification` ; créée automatiquement par Apps Script si absente
+- Feuille `Layouts` : plans visuels par localisation — `localisation | layout_json` ; créée automatiquement par Apps Script lors du premier enregistrement de plan
 
 ### Contournement CORS
 
@@ -54,11 +55,15 @@ fetch(url, {
 | Méthode | Action | Auth requise |
 |---|---|---|
 | GET  | `?action=getAll` | Non (lecture publique) |
-| GET  | `?action=getLayout` | Non |
+| GET  | `?action=getLocalisations` | Non |
+| GET  | `?action=getLayout&localisation_id=<id>` | Non |
 | POST | `{ action: 'add', data: {...}, apiKey }` | Oui |
 | POST | `{ action: 'update', id, data: {...}, apiKey }` | Oui |
 | POST | `{ action: 'delete', id, apiKey, comment }` | Oui — archive la ligne au lieu de la supprimer |
-| POST | `{ action: 'saveLayout', data, apiKey }` | Oui |
+| POST | `{ action: 'addLocalisation', data: {...}, apiKey }` | Oui |
+| POST | `{ action: 'updateLocalisation', id, data: {...}, apiKey }` | Oui |
+| POST | `{ action: 'deleteLocalisation', id, apiKey }` | Oui — supprime aussi le layout associé |
+| POST | `{ action: 'saveLayout', localisation_id, data, apiKey }` | Oui |
 
 ## Conséquences
 

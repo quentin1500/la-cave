@@ -9,8 +9,8 @@ const PublicApp = (() => {
 
   // ── État ──────────────────────────────────────────────────────────────────
   let allBottles      = [];
-  let filteredBottles = [];
-
+  let filteredBottles = [];  let _localisations  = [];
+  let _layoutsCache   = {}; // { [localisationId]: slots[] }
   // ── SVG bouteille (réutilisé comme placeholder) ───────────────────────────
   const BOTTLE_SVG    = bottleSvg(44, 110);
   const BOTTLE_SVG_LG = bottleSvg(80, 200);
@@ -49,6 +49,11 @@ const PublicApp = (() => {
 
       filteredBottles = allBottles;
 
+      // Charger les localisations pour enrichir l'affichage (nom, plan)
+      if (CONFIG.isConfigured) {
+        try { _localisations = await SheetsAPI.getLocalisations(); } catch (_) { _localisations = []; }
+      }
+
       renderStats_(allBottles);
       populateFilters_(allBottles);
       renderGrid_(filteredBottles);
@@ -61,13 +66,8 @@ const PublicApp = (() => {
         error.message || 'Impossible de charger les données.';
       showState_('error');
     }
-    // Charger et afficher le layout si disponible
-    try {
-      const layout = CONFIG.isConfigured ? await SheetsAPI.getLayout() : null;
-      renderLayout_(layout);
-    } catch (err) {
-      console.warn('Impossible de charger le layout de la cave :', err);
-    }
+    // Le #cave-layout global est désactivé (multi-localisation : chaque bouteille a son propre plan dans le modal)
+    document.getElementById('cave-layout').classList.add('hidden');
   }
 
   // ── Affichage des états ───────────────────────────────────────────────────
@@ -206,6 +206,29 @@ const PublicApp = (() => {
       ? `<img src="${escapeAttr_(bottle.photo_url)}" alt="${escapeAttr_(bottle.cuvee || '')}">`
       : `<div class="modal__image-placeholder">${BOTTLE_SVG_LG}</div>`;
 
+    // Section emplacement
+    const loc    = bottle.localisation ? _localisations.find(l => l.id === bottle.localisation) : null;
+    const locNom = loc ? escapeHtml(loc.nom) : null;
+    const hasSlotPlan = !!(bottle.localisation && bottle.slot_id);
+
+    let locationHtml = '';
+    if (locNom || bottle.rang || bottle.colonne || hasSlotPlan) {
+      const locLine  = locNom ? `<div class="modal-location__loc">${locNom}</div>` : '';
+      const rangLine = (bottle.rang && bottle.colonne)
+        ? `<div class="modal-location__coords">Rang\u00a0${escapeHtml(String(bottle.rang))}\u00a0\u00b7 Colonne\u00a0${escapeHtml(String(bottle.colonne))}</div>`
+        : '';
+      const planHolder = hasSlotPlan
+        ? `<div id="modal-slot-plan" class="modal-slot-plan">
+             <div class="modal-slot-plan__loading">Chargement du plan\u2026</div>
+           </div>`
+        : '';
+      locationHtml = `
+        <div class="modal__location">
+          <div class="modal-location__label">Emplacement</div>
+          ${locLine}${rangLine}${planHolder}
+        </div>`;
+    }
+
     panel.innerHTML = `
       <button class="modal__close" onclick="PublicApp.closeModal()" aria-label="Fermer">✕</button>
       <div class="modal__content">
@@ -228,16 +251,7 @@ const PublicApp = (() => {
             ${detailRow_('Prix d\'achat', bottle.prix_achat ? formatPrice_(Number(bottle.prix_achat)) : '')}
           </div>
 
-          <div class="modal__location" aria-label="Emplacement">
-            <div>
-              <div style="font-size:var(--text-xs);color:var(--c-text-muted);text-transform:uppercase;letter-spacing:.06em;margin-bottom:4px">Emplacement</div>
-              <div style="font-size:var(--text-sm);font-weight:500">
-                ${(bottle.rang && bottle.colonne)
-                  ? `Rang ${escapeHtml(String(bottle.rang))}, Colonne ${escapeHtml(String(bottle.colonne))}`
-                  : '–'}
-              </div>
-            </div>
-          </div>
+          ${locationHtml}
 
           ${bottle.notes_personnelles ? `
             <div class="modal__notes">
@@ -252,6 +266,73 @@ const PublicApp = (() => {
     modal.classList.remove('hidden');
     document.body.style.overflow = 'hidden';
     panel.focus();
+
+    if (hasSlotPlan) {
+      loadAndRenderModalSlotPlan_(bottle.localisation, bottle.slot_id);
+    }
+  }
+
+  async function loadAndRenderModalSlotPlan_(locId, slotId) {
+    let slots;
+    if (_layoutsCache[locId]) {
+      slots = _layoutsCache[locId];
+    } else {
+      try {
+        const resp = await SheetsAPI.getLayout(locId);
+        // SheetsAPI.getLayout retourne le layout parsé : { slots: [...] } ou null
+        slots = (resp && resp.slots) ? resp.slots : [];
+        _layoutsCache[locId] = slots;
+      } catch (err) {
+        console.warn('Impossible de charger le layout :', err);
+        slots = [];
+      }
+    }
+    renderModalSlotPlan_(slots, slotId);
+  }
+
+  function renderModalSlotPlan_(slots, highlightedSlotId) {
+    const container = document.getElementById('modal-slot-plan');
+    if (!container) return;
+    container.innerHTML = '';
+
+    if (!slots || slots.length === 0) {
+      container.classList.add('hidden');
+      return;
+    }
+
+    // Calculer les dimensions du canvas
+    let maxRight = 0, maxBottom = 0;
+    slots.forEach(s => {
+      const size = s.size || 60;
+      maxRight   = Math.max(maxRight,  (s.x || 0) + size);
+      maxBottom  = Math.max(maxBottom, (s.y || 0) + size);
+    });
+
+    // Mise à l'échelle pour tenir dans le modal (max 380px)
+    const MAX_W = 380;
+    const scale = (maxRight + 16) > MAX_W ? MAX_W / (maxRight + 16) : 1;
+
+    const canvas = document.createElement('div');
+    canvas.className      = 'modal-slot-plan__canvas';
+    canvas.style.width    = Math.round((maxRight  + 16) * scale) + 'px';
+    canvas.style.height   = Math.round((maxBottom + 16) * scale) + 'px';
+
+    slots.forEach((s, idx) => {
+      const el = document.createElement('div');
+      el.className = 'modal-slot-plan__slot';
+      if (s.id === highlightedSlotId) el.classList.add('modal-slot-plan__slot--highlighted');
+      el.style.left   = Math.round((s.x || 0) * scale) + 'px';
+      el.style.top    = Math.round((s.y || 0) * scale) + 'px';
+      el.style.width  = Math.round((s.size || 60) * scale) + 'px';
+      el.style.height = Math.round((s.size || 60) * scale) + 'px';
+      el.style.fontSize = Math.round(11 * scale) + 'px';
+      el.textContent  = s.label || String(idx + 1);
+      el.setAttribute('aria-label',
+        `${s.id === highlightedSlotId ? '(cette bouteille) ' : ''}Emplacement ${escapeHtml(s.label || String(idx + 1))}`);
+      canvas.appendChild(el);
+    });
+
+    container.appendChild(canvas);
   }
 
   function isArchived_(b) {

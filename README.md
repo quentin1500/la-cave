@@ -9,8 +9,24 @@ Consultez votre collection, gérez les emplacements, suivez vos acquisitions.
 
 | Interface | Description |
 |---|---|
-| **Publique** (`index.html`) | Consultation de la cave, filtres, fiches détaillées |
-| **Admin** (`admin.html`) | Ajout, modification, suppression de bouteilles |
+| **Publique** (`index.html`) | Consultation de la cave, filtres, fiches détaillées avec plan de localisation |
+| **Admin** (`admin.html`) | Ajout, modification, archivage de bouteilles ; gestion des localisations et de leurs plans |
+
+### Détail des fonctionnalités
+
+**Interface publique**
+- Grille de bouteilles filtrables par type, région, pays, millésime et recherche texte
+- Statistiques : nombre de références, types, régions, valeur estimée
+- Fiche détaillée au clic : infos complètes, notes personnelles, emplacement
+- Si la bouteille est associée à un slot de plan, **visualisation du plan de la localisation** avec l'emplacement mis en évidence
+
+**Interface admin** (authentification par mot de passe)
+- CRUD complet : ajout, modification, archivage (avec commentaire), restauration
+- Pré-remplissage des fiches depuis **OpenFoodFacts** (recherche par nom ou code-barres)
+- **Gestion des localisations** : espaces de stockage nommés (cave, armoire à vins…) avec description
+- **Éditeur de plan** par localisation : ajout et positionnement libre de slots (drag & drop)
+- **Sélection visuelle de l'emplacement** dans le formulaire bouteille : le plan de la localisation s'affiche et l'on clique sur un slot pour y associer la bouteille
+- Tableau des bouteilles actives et section archives avec détail consultable
 
 ---
 
@@ -18,7 +34,7 @@ Consultez votre collection, gérez les emplacements, suivez vos acquisitions.
 
 | Couche | Choix |
 |---|---|
-| **Frontend** | Vanilla JavaScript, HTML5, CSS3 |
+| **Frontend** | Vanilla JavaScript, HTML5, CSS3 — aucun framework, aucun bundler |
 | **Hébergement** | GitHub Pages |
 | **Base de données** | Google Sheets via Apps Script (API REST) |
 | **Enrichissement** | API OpenFoodFacts |
@@ -33,7 +49,7 @@ Consultez votre collection, gérez les emplacements, suivez vos acquisitions.
 la-cave/
 ├── .github/
 │   ├── copilot-instructions.md     # Instructions globales pour GitHub Copilot
-│   ├── instructions/               # Skills Copilot (scoped)
+│   ├── instructions/               # Instructions Copilot (scoped)
 │   │   ├── adr-compliance.instructions.md
 │   │   └── code-style.instructions.md
 │   └── workflows/
@@ -46,7 +62,8 @@ la-cave/
 │   │   ├── 003-authentification-admin.md
 │   │   ├── 004-integration-openfoodfacts.md
 │   │   ├── 005-structure-emplacement.md
-│   │   └── 006-modele-donnees-bouteille.md
+│   │   ├── 006-modele-donnees-bouteille.md
+│   │   └── 007-localisations.md
 │   └── guides/                     # Guides de configuration
 │       ├── setup-apps-script.md
 │       ├── setup-github-pages.md
@@ -72,6 +89,16 @@ la-cave/
         ├── public.js               # Logique page publique
         └── admin.js                # Logique interface admin
 ```
+
+---
+
+## Google Sheets — structure attendue
+
+| Onglet | Rôle |
+|---|---|
+| `Bouteilles` | Inventaire principal (créé automatiquement par Apps Script) |
+| `Localisations` | Espaces de stockage nommés (créé automatiquement à la première localisation) |
+| `Layouts` | Plans visuels par localisation, JSON sérialisé (créé automatiquement au premier enregistrement de plan) |
 
 ---
 
@@ -108,6 +135,7 @@ Une bannière indique le mode démonstration sur la page publique.
 - [ADR 004 – Intégration OpenFoodFacts](docs/adr/004-integration-openfoodfacts.md)
 - [ADR 005 – Structure emplacement](docs/adr/005-structure-emplacement.md)
 - [ADR 006 – Modèle de données bouteille](docs/adr/006-modele-donnees-bouteille.md)
+- [ADR 007 – Gestion des localisations](docs/adr/007-localisations.md)
 
 ---
 
@@ -115,16 +143,20 @@ Une bannière indique le mode démonstration sur la page publique.
 
 ### Lot 1 (actuel)
 - [x] Page publique avec filtres et fiches détaillées
-- [x] Interface admin avec CRUD complet
-- [x] Enrichissement via OpenFoodFacts (recherche texte)
+- [x] Interface admin avec CRUD complet et archivage
+- [x] Enrichissement via OpenFoodFacts (recherche texte et code-barres)
 - [x] Déploiement GitHub Pages avec injection de secrets
+- [x] Gestion de plusieurs localisations de stockage
+- [x] Éditeur de plan visuel (drag & drop) par localisation
+- [x] Association bouteille → emplacement précis (slot) du plan
+- [x] Visualisation du plan avec emplacement mis en évidence dans la fiche publique
 
 ### Lot 2 (à venir)
 - [ ] Lecture de code-barres via caméra (interface mobile)
-- [ ] Visualisation graphique de l'emplacement (plan de cave)
 - [ ] Export PDF / impression
 - [ ] Historique des mouvements (achats, consommations)
 
 ---
 
 *Projet personnel — aucune donnée n'est partagée avec des tiers en dehors de Google Sheets.*
+

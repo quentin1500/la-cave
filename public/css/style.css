@@ -287,6 +287,8 @@ h4 { font-size: var(--text-lg);  font-weight: 500; }
 }
 .controls__filters { display: flex; gap: var(--sp-3); flex-wrap: wrap; flex: 1; }
 .controls__search  { flex-shrink: 0; }
+.controls__filter-toggle { display: none; }
+.controls__chevron { display: inline-block; transition: transform var(--t-base); margin-left: var(--sp-2); }
 .cellar__count     { font-size: var(--text-xs); color: var(--c-text-muted); }
 
 .filter-select,
@@ -1001,17 +1003,54 @@ textarea.form-control { resize: vertical; min-height: 90px; }
 }
 @media (max-width: 768px) {
   .bottle-grid { grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: var(--sp-4); }
-  .controls__bar { flex-direction: column; align-items: stretch; }
+  .bottle-card__image { aspect-ratio: 7/8; }
+  .controls__bar { flex-direction: column; align-items: stretch; gap: var(--sp-2); }
+  .controls__search { order: -1; }
+  .controls__search .search-input { width: 100%; min-width: 0; box-sizing: border-box; }
+  .controls__filter-toggle {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background: var(--c-bg-raised);
+    border: 1px solid var(--c-border);
+    border-radius: var(--r-md);
+    color: var(--c-text-muted);
+    padding: var(--sp-2) var(--sp-4);
+    font-family: var(--font-body);
+    font-size: var(--text-sm);
+    cursor: pointer;
+    width: 100%;
+    text-align: left;
+  }
+  .controls__filter-toggle:hover { border-color: var(--c-bordeaux); color: var(--c-text); }
+  .controls__filter-toggle[aria-expanded="true"] .controls__chevron { transform: rotate(180deg); }
+  .controls__filters { display: none; }
+  .controls__filters--open { display: flex; flex-wrap: wrap; }
   .hero__title { font-size: var(--text-3xl); }
   .stats-grid  { grid-template-columns: repeat(2, 1fr); }
   .form-row, .form-row--3 { grid-template-columns: 1fr; }
   .modal__details { grid-template-columns: 1fr; }
+  .modal__image {
+    height: 190px;
+    min-height: 190px;
+    max-height: 190px;
+  }
+  .modal__image img { object-fit: contain; }
   .admin-toolbar .container { flex-direction: column; align-items: stretch; }
   .demo-banner { font-size: 11px; padding: var(--sp-2) var(--sp-4); white-space: normal; text-align: center; }
 }
 @media (max-width: 480px) {
-  .container { padding: 0 var(--sp-4); }
+  .container { padding: 0 var(--sp-3); }
   .bottle-grid { grid-template-columns: repeat(2, 1fr); gap: var(--sp-3); }
+  .bottle-card__image { aspect-ratio: 1/1; }
   .hero { padding: var(--sp-8) 0; }
   .notification { left: var(--sp-4); right: var(--sp-4); }
+  .modal { padding: var(--sp-2); }
+  .modal__info { padding: var(--sp-4); }
+  .modal__panel { border-radius: var(--r-lg); }
+  .modal__image {
+    height: 170px;
+    min-height: 170px;
+    max-height: 170px;
+  }
 }

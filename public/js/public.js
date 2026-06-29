@@ -31,6 +31,16 @@ const PublicApp = (() => {
     });
     document.getElementById('search').addEventListener('input', debounce_(applyFilters, 280));
 
+    // Bouton de bascule des filtres (mobile)
+    const filterToggle = document.getElementById('filter-toggle');
+    const filterPanel  = document.getElementById('filter-panel');
+    if (filterToggle && filterPanel) {
+      filterToggle.addEventListener('click', () => {
+        const isOpen = filterPanel.classList.toggle('controls__filters--open');
+        filterToggle.setAttribute('aria-expanded', String(isOpen));
+      });
+    }
+
     await loadBottles();
   }
 
@@ -308,8 +318,8 @@ const PublicApp = (() => {
       maxBottom  = Math.max(maxBottom, (s.y || 0) + size);
     });
 
-    // Mise à l'échelle pour tenir dans le modal (max 380px)
-    const MAX_W = 380;
+    // Mise à l'échelle pour s'adapter à la largeur réelle du conteneur
+    const MAX_W = container.clientWidth || 380;
     const scale = (maxRight + 16) > MAX_W ? MAX_W / (maxRight + 16) : 1;
 
     const canvas = document.createElement('div');

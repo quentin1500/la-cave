@@ -65,7 +65,12 @@
   <section class="controls" id="controls" aria-label="Filtres et recherche">
     <div class="container">
       <div class="controls__bar">
-        <div class="controls__filters" role="group" aria-label="Filtrer la collection">
+        <button class="controls__filter-toggle" id="filter-toggle"
+                aria-expanded="false" aria-controls="filter-panel">
+          <span>Filtres</span>
+          <span class="controls__chevron" aria-hidden="true">▼</span>
+        </button>
+        <div class="controls__filters" id="filter-panel" role="group" aria-label="Filtrer la collection">
           <select class="filter-select" id="filter-type" aria-label="Filtrer par type">
             <option value="">Tous les types</option>
           </select>

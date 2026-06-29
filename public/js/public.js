@@ -8,9 +8,13 @@
 const PublicApp = (() => {
 
   // ── État ──────────────────────────────────────────────────────────────────
-  let allBottles      = [];
-  let filteredBottles = [];  let _localisations  = [];
-  let _layoutsCache   = {}; // { [localisationId]: slots[] }
+  let allBottles         = [];
+  let filteredBottles    = [];
+  let _localisations     = [];
+  let _layoutsCache      = {}; // { [localisationId]: slots[] }
+  let _lastLoadedAt      = null;
+  let _hasSessionData    = false;
+  let _initDone          = false;
   // ── SVG bouteille (réutilisé comme placeholder) ───────────────────────────
   const BOTTLE_SVG    = bottleSvg(44, 110);
   const BOTTLE_SVG_LG = bottleSvg(80, 200);
@@ -19,26 +23,33 @@ const PublicApp = (() => {
 
   async function init() {
     document.getElementById('footer-year').textContent = new Date().getFullYear();
+    if (!_initDone) {
+      // Fermeture du modal via le fond
+      document.getElementById('modal-backdrop').addEventListener('click', closeModal);
+      // Fermeture via Echap
+      document.addEventListener('keydown', e => { if (e.key === 'Escape') closeModal(); });
 
-    // Fermeture du modal via le fond
-    document.getElementById('modal-backdrop').addEventListener('click', closeModal);
-    // Fermeture via Echap
-    document.addEventListener('keydown', e => { if (e.key === 'Escape') closeModal(); });
-
-    // Filtres et recherche
-    ['filter-type', 'filter-region', 'filter-pays', 'filter-millesime', 'filter-note'].forEach(id => {
-      document.getElementById(id).addEventListener('change', applyFilters);
-    });
-    document.getElementById('search').addEventListener('input', debounce_(applyFilters, 280));
-
-    // Bouton de bascule des filtres (mobile)
-    const filterToggle = document.getElementById('filter-toggle');
-    const filterPanel  = document.getElementById('filter-panel');
-    if (filterToggle && filterPanel) {
-      filterToggle.addEventListener('click', () => {
-        const isOpen = filterPanel.classList.toggle('controls__filters--open');
-        filterToggle.setAttribute('aria-expanded', String(isOpen));
+      // Filtres et recherche
+      ['filter-type', 'filter-region', 'filter-pays', 'filter-millesime', 'filter-note'].forEach(id => {
+        document.getElementById(id).addEventListener('change', applyFilters);
       });
+      document.getElementById('search').addEventListener('input', debounce_(applyFilters, 280));
+
+      // Bouton de bascule des filtres (mobile)
+      const filterToggle = document.getElementById('filter-toggle');
+      const filterPanel  = document.getElementById('filter-panel');
+      if (filterToggle && filterPanel) {
+        filterToggle.addEventListener('click', () => {
+          const isOpen = filterPanel.classList.toggle('controls__filters--open');
+          filterToggle.setAttribute('aria-expanded', String(isOpen));
+        });
+      }
+
+      // État réseau de session
+      window.addEventListener('online', onNetworkChange_);
+      window.addEventListener('offline', onNetworkChange_);
+
+      _initDone = true;
     }
 
     await loadBottles();
@@ -49,35 +60,109 @@ const PublicApp = (() => {
 
     try {
       if (CONFIG.isConfigured) {
-        allBottles = await SheetsAPI.getAllBottles();
-        // Ne pas afficher les bouteilles archivées dans l'interface publique
-        allBottles = allBottles.filter(b => !isArchived_(b));
+        const loaded = await fetchPublicDataSnapshot_();
+        allBottles      = loaded.bottles;
+        _localisations  = loaded.localisations;
+        _layoutsCache   = loaded.layoutsCache;
+        _lastLoadedAt   = new Date();
+        _hasSessionData = true;
       } else {
-        allBottles = SAMPLE_BOTTLES;
+        allBottles      = SAMPLE_BOTTLES.filter(b => !isArchived_(b));
+        _localisations  = [];
+        _layoutsCache   = {};
+        _lastLoadedAt   = new Date();
+        _hasSessionData = true;
         document.getElementById('demo-banner').classList.remove('hidden');
       }
 
       filteredBottles = allBottles;
 
-      // Charger les localisations pour enrichir l'affichage (nom, plan)
-      if (CONFIG.isConfigured) {
-        try { _localisations = await SheetsAPI.getLocalisations(); } catch (_) { _localisations = []; }
-      }
-
       renderStats_(allBottles);
       populateFilters_(allBottles);
       renderGrid_(filteredBottles);
+      updateSessionStatus_();
 
       showState_(filteredBottles.length === 0 ? 'empty' : 'grid');
 
     } catch (error) {
       console.error('Erreur de chargement de la cave :', error);
+      if (_hasSessionData) {
+        // Repli sur les données déjà chargées en mémoire tant que la page reste ouverte.
+        filteredBottles = allBottles;
+        renderStats_(allBottles);
+        populateFilters_(allBottles);
+        renderGrid_(filteredBottles);
+        updateSessionStatus_();
+        showState_(filteredBottles.length === 0 ? 'empty' : 'grid');
+        return;
+      }
+
       document.getElementById('error-message').textContent =
-        error.message || 'Impossible de charger les données.';
+        navigator.onLine
+          ? 'Impossible de charger les données publiques. Vérifiez la configuration de la source.'
+          : 'Vous êtes hors réseau et aucune donnée n\'a été chargée dans cette session.';
+      updateSessionStatus_();
       showState_('error');
     }
     // Le #cave-layout global est désactivé (multi-localisation : chaque bouteille a son propre plan dans le modal)
     document.getElementById('cave-layout').classList.add('hidden');
+  }
+
+  async function fetchPublicDataSnapshot_() {
+    const [bottlesRaw, localisationsRaw] = await Promise.all([
+      SheetsAPI.getAllBottles(),
+      SheetsAPI.getLocalisations().catch(err => {
+        console.warn('Localisations indisponibles :', err);
+        return [];
+      }),
+    ]);
+
+    const bottles = (Array.isArray(bottlesRaw) ? bottlesRaw : []).filter(b => !isArchived_(b));
+    const localisations = Array.isArray(localisationsRaw) ? localisationsRaw : [];
+    const layoutsCache = {};
+
+    // Préchargement de tous les layouts pour garder les détails consultables hors réseau.
+    await Promise.all(localisations.map(async loc => {
+      if (!loc || !loc.id) return;
+      try {
+        const layout = await SheetsAPI.getLayout(loc.id);
+        layoutsCache[loc.id] = (layout && Array.isArray(layout.slots)) ? layout.slots : [];
+      } catch (err) {
+        console.warn(`Layout indisponible pour la localisation ${loc.id} :`, err);
+        layoutsCache[loc.id] = [];
+      }
+    }));
+
+    return { bottles, localisations, layoutsCache };
+  }
+
+  function onNetworkChange_() {
+    updateSessionStatus_();
+  }
+
+  function updateSessionStatus_() {
+    const statusEl = document.getElementById('session-status');
+    if (!statusEl) return;
+
+    const hasData = _hasSessionData && allBottles.length >= 0;
+    if (!hasData) {
+      statusEl.className = 'session-status hidden';
+      statusEl.textContent = '';
+      return;
+    }
+
+    const timestamp = _lastLoadedAt
+      ? `${formatDateTime_(_lastLoadedAt)}`
+      : 'Données chargées dans cette session.';
+
+    if (!navigator.onLine) {
+      statusEl.className = 'session-status session-status--offline';
+      statusEl.textContent = `Mode hors réseau [${timestamp}]`;
+      return;
+    }
+
+    statusEl.className = 'session-status session-status--online hidden';
+    statusEl.textContent = `Données publiques en mémoire de session`;
   }
 
   // ── Affichage des états ───────────────────────────────────────────────────
@@ -410,6 +495,16 @@ const PublicApp = (() => {
       currency: 'EUR',
       maximumFractionDigits: 2,
     }).format(amount);
+  }
+
+  function formatDateTime_(date) {
+    return new Intl.DateTimeFormat('fr-FR', {
+      day: '2-digit',
+      month: '2-digit',
+      year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+    }).format(date);
   }
 
   function debounce_(fn, delay) {

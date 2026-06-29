@@ -291,6 +291,26 @@ h4 { font-size: var(--text-lg);  font-weight: 500; }
 .controls__chevron { display: inline-block; transition: transform var(--t-base); margin-left: var(--sp-2); }
 .cellar__count     { font-size: var(--text-xs); color: var(--c-text-muted); }
 
+.session-status {
+  margin-top: var(--sp-2);
+  padding: var(--sp-1) var(--sp-1);
+  border-radius: var(--r-md);
+  font-size: var(--text-xs);
+  border: 1px solid transparent;
+}
+
+.session-status--online {
+  color: var(--c-info);
+  background: rgba(74, 128, 160, 0.1);
+  border-color: rgba(74, 128, 160, 0.4);
+}
+
+.session-status--offline {
+  color: var(--c-warning);
+  background: rgba(192, 136, 42, 0.12);
+  border-color: rgba(192, 136, 42, 0.45);
+}
+
 .filter-select,
 .search-input {
   background: var(--c-bg-raised);

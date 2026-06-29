@@ -17,11 +17,13 @@ Consultez votre collection, gérez les emplacements, suivez vos acquisitions.
 **Interface publique**
 - Grille de bouteilles filtrables par type, région, pays, millésime et recherche texte
 - Statistiques : nombre de références, types, régions, valeur estimée
-- Fiche détaillée au clic : infos complètes, notes personnelles, emplacement
+- Fiche détaillée au clic : infos complètes, notes personnelles, note en étoiles (1-3 ★), emplacement
 - Si la bouteille est associée à un slot de plan, **visualisation du plan de la localisation** avec l'emplacement mis en évidence
+- **Note en étoiles** (1 à 3) affichée sur la carte et dans le détail de chaque bouteille
 
 **Interface admin** (authentification par mot de passe)
 - CRUD complet : ajout, modification, archivage (avec commentaire), restauration
+- **Notation** : attribution d'une note de 1 à 3 étoiles via sélecteur interactif dans le formulaire
 - Pré-remplissage des fiches depuis **OpenFoodFacts** (recherche par nom ou code-barres)
 - **Gestion des localisations** : espaces de stockage nommés (cave, armoire à vins…) avec description
 - **Éditeur de plan** par localisation : ajout et positionnement libre de slots (drag & drop)

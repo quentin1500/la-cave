@@ -39,6 +39,7 @@ Bouteille
 ├─ date_achat           Chaîne ISO 8601 (YYYY-MM-DD)
 ├─ prix_achat           Décimal en euros
 ├─ valeur_estimee       Décimal en euros (peut différer du prix d'achat)
+├─ note                 Entier 1, 2 ou 3 (notation personnelle en étoiles) — optionnel
 ├─ notes_personnelles   Texte libre (impressions, accords, occasions)
 ├─ date_creation        Chaîne ISO 8601 datetime (auto-générée)
 └─ date_modification    Chaîne ISO 8601 datetime (auto-mise à jour)
@@ -79,7 +80,7 @@ l'historique est conservé et consultable via l'interface d'administration.
 ```
 id | type | producteur | cuvee | millesime | appellation | region | pays |
 cepages | volume | degre_alcool | code_barres | photo_url | rang | colonne | localisation | slot_id |
-date_achat | prix_achat | valeur_estimee | notes_personnelles |
+date_achat | prix_achat | valeur_estimee | note | notes_personnelles |
 date_creation | date_modification
 ```
 

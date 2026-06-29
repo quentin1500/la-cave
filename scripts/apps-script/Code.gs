@@ -11,7 +11,7 @@ var HEADERS = [
   'id', 'type', 'producteur', 'cuvee', 'millesime', 'appellation',
   'region', 'pays', 'cepages', 'volume', 'degre_alcool', 'code_barres',
   'photo_url', 'rang', 'colonne', 'localisation', 'slot_id',
-  'date_achat', 'prix_achat', 'valeur_estimee', 'notes_personnelles',
+  'date_achat', 'prix_achat', 'valeur_estimee', 'note', 'notes_personnelles',
   'date_creation', 'date_modification',
   // Archivage
   'archived', 'archived_at', 'archive_comment'

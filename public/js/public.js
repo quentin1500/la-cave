@@ -26,7 +26,7 @@ const PublicApp = (() => {
     document.addEventListener('keydown', e => { if (e.key === 'Escape') closeModal(); });
 
     // Filtres et recherche
-    ['filter-type', 'filter-region', 'filter-pays', 'filter-millesime'].forEach(id => {
+    ['filter-type', 'filter-region', 'filter-pays', 'filter-millesime', 'filter-note'].forEach(id => {
       document.getElementById(id).addEventListener('change', applyFilters);
     });
     document.getElementById('search').addEventListener('input', debounce_(applyFilters, 280));
@@ -137,6 +137,7 @@ const PublicApp = (() => {
     const region    = document.getElementById('filter-region').value;
     const pays      = document.getElementById('filter-pays').value;
     const millesime = document.getElementById('filter-millesime').value;
+    const note      = document.getElementById('filter-note').value;
     const search    = document.getElementById('search').value.toLowerCase().trim();
 
     filteredBottles = allBottles.filter(b => {
@@ -144,6 +145,7 @@ const PublicApp = (() => {
       if (region    && b.region    !== region)               return false;
       if (pays      && b.pays      !== pays)                 return false;
       if (millesime && String(b.millesime) !== millesime)    return false;
+      if (note      && String(b.note || '') !== note)        return false;
       if (search) {
         const hay = [b.producteur, b.cuvee, b.appellation, b.region, b.pays, b.cepages]
           .filter(Boolean).join(' ').toLowerCase();
@@ -194,6 +196,7 @@ const PublicApp = (() => {
           ${bottle.appellation ? `<span class="bottle-card__appellation">${escapeHtml(bottle.appellation)}</span>` : ''}
           ${bottle.region ? `<span class="bottle-card__region">${escapeHtml(bottle.region)}</span>` : ''}
         </div>
+        ${bottle.note ? `<div class="bottle-card__stars">${starsHtml_(Number(bottle.note))}</div>` : ''}
       </div>
     `;
 
@@ -259,6 +262,7 @@ const PublicApp = (() => {
             ${detailRow_('Volume',         bottle.volume   ? `${bottle.volume} ml`      : '')}
             ${detailRow_('Alcool',         bottle.degre_alcool ? `${bottle.degre_alcool}°` : '')}
             ${detailRow_('Prix d\'achat', bottle.prix_achat ? formatPrice_(Number(bottle.prix_achat)) : '')}
+            ${bottle.note ? noteRow_(Number(bottle.note)) : ''}
           </div>
 
           ${locationHtml}
@@ -364,6 +368,25 @@ const PublicApp = (() => {
       <div class="detail-row">
         <span class="detail-row__label">${escapeHtml(label)}</span>
         <span class="detail-row__value">${escapeHtml(String(value))}</span>
+      </div>`;
+  }
+
+  function starsHtml_(note) {
+    const n = Math.min(3, Math.max(1, note));
+    let html = '<span class="stars" aria-label="Note : ' + n + ' étoile' + (n > 1 ? 's' : '') + ' sur 3">';
+    for (let i = 1; i <= 3; i++) {
+      html += `<span class="stars__star${i > n ? ' stars__star--empty' : ''}" aria-hidden="true">★</span>`;
+    }
+    html += '</span>';
+    return html;
+  }
+
+  function noteRow_(note) {
+    const n = Math.min(3, Math.max(1, note));
+    return `
+      <div class="detail-row">
+        <span class="detail-row__label">Note</span>
+        <span class="detail-row__value">${starsHtml_(n)}</span>
       </div>`;
   }
 

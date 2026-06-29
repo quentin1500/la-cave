@@ -51,6 +51,9 @@ const AdminApp = (() => {
 
     // Remplir le select de types dans le formulaire
     populateTypeSelect_();
+
+    // Initialiser le sélecteur d'étoiles
+    initStarPicker_();
   }
 
   // ── Auth ──────────────────────────────────────────────────────────────────
@@ -710,6 +713,7 @@ const AdminApp = (() => {
     if (slotHidden) slotHidden.value = '';
     const slotPicker = document.getElementById('f-slot-picker');
     if (slotPicker) slotPicker.innerHTML = '';
+    setStarPicker_(0);
   }
 
   function populateForm_(bottle) {
@@ -734,6 +738,7 @@ const AdminApp = (() => {
     document.getElementById('f-prix-achat').value     = bottle.prix_achat || '';
     document.getElementById('f-valeur').value         = bottle.valeur_estimee || '';
     document.getElementById('f-notes').value          = bottle.notes_personnelles || '';
+    setStarPicker_(bottle.note ? Number(bottle.note) : 0);
   }
 
   function collectFormData_() {
@@ -761,6 +766,7 @@ const AdminApp = (() => {
       date_achat:         val('f-date-achat'),
       prix_achat:         val('f-prix-achat') ? Number(val('f-prix-achat')) : '',
       valeur_estimee:     val('f-valeur')     ? Number(val('f-valeur'))     : '',
+      note:               val('f-note')       ? Number(val('f-note'))       : '',
       notes_personnelles: val('f-notes'),
     };
   }
@@ -956,6 +962,7 @@ const AdminApp = (() => {
             ${detailRow('Date d\u2019achat', bottle.date_achat)}
             ${detailRow('Prix d\u2019achat', bottle.prix_achat ? `${Number(bottle.prix_achat).toFixed(2)}\u00a0€` : '')}
             ${detailRow('Valeur estimée', bottle.valeur_estimee ? `${Number(bottle.valeur_estimee).toFixed(2)}\u00a0€` : '')}
+            ${bottle.note ? `<div class="detail-row"><span class="detail-row__label">Note</span><span class="detail-row__value">${starsHtml_(Number(bottle.note))}</span></div>` : ''}
           </div>
 
           ${bottle.notes_personnelles ? `
@@ -1050,6 +1057,7 @@ const AdminApp = (() => {
         <td>${escapeHtml_(b.producteur || '–')}</td>
         <td>${escapeHtml_(b.cuvee || '–')}</td>
         <td>${escapeHtml_(String(b.millesime || '–'))}</td>
+        <td>${b.note ? starsHtml_(Number(b.note)) : '–'}</td>
         <td>${escapeHtml_(emplacement)}</td>
         <td>${escapeHtml_(prix)}</td>
         <td class="td-actions">
@@ -1162,6 +1170,43 @@ const AdminApp = (() => {
     el.classList.remove('hidden');
     clearTimeout(el._timer);
     el._timer = setTimeout(() => el.classList.add('hidden'), 4000);
+  }
+
+  // ── Notation en étoiles ───────────────────────────────────────────────────
+
+  function initStarPicker_() {
+    const picker = document.getElementById('f-note-picker');
+    if (!picker) return;
+    picker.querySelectorAll('.star-picker__btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const val = Number(btn.dataset.value);
+        const current = Number(document.getElementById('f-note').value);
+        setStarPicker_(current === val ? 0 : val);
+      });
+    });
+    document.getElementById('f-note-clear').addEventListener('click', () => setStarPicker_(0));
+  }
+
+  function setStarPicker_(value) {
+    const hidden = document.getElementById('f-note');
+    if (!hidden) return;
+    hidden.value = value || '';
+    const picker = document.getElementById('f-note-picker');
+    if (!picker) return;
+    picker.querySelectorAll('.star-picker__btn').forEach(btn => {
+      const active = Number(btn.dataset.value) <= value;
+      btn.classList.toggle('star-picker__btn--active', active);
+    });
+  }
+
+  function starsHtml_(note) {
+    const n = Math.min(3, Math.max(1, note));
+    let html = '<span class="stars" aria-label="' + n + ' étoile' + (n > 1 ? 's' : '') + ' sur 3">';
+    for (let i = 1; i <= 3; i++) {
+      html += '<span class="stars__star' + (i > n ? ' stars__star--empty' : '') + '" aria-hidden="true">★</span>';
+    }
+    html += '</span>';
+    return html;
   }
 
   // ── Utilitaires ───────────────────────────────────────────────────────────

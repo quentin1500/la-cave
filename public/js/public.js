@@ -15,6 +15,8 @@ const PublicApp = (() => {
   let _lastLoadedAt      = null;
   let _hasSessionData    = false;
   let _initDone          = false;
+  let _activeModal       = null;
+  let _activeLocalisationId = '';
   // ── SVG bouteille (réutilisé comme placeholder) ───────────────────────────
   const BOTTLE_SVG    = bottleSvg(44, 110);
   const BOTTLE_SVG_LG = bottleSvg(80, 200);
@@ -26,8 +28,14 @@ const PublicApp = (() => {
     if (!_initDone) {
       // Fermeture du modal via le fond
       document.getElementById('modal-backdrop').addEventListener('click', closeModal);
+      document.getElementById('localisations-backdrop').addEventListener('click', closeModal);
       // Fermeture via Echap
       document.addEventListener('keydown', e => { if (e.key === 'Escape') closeModal(); });
+
+      const localisationsButton = document.getElementById('open-localisations');
+      if (localisationsButton) {
+        localisationsButton.addEventListener('click', openLocalisationsModal_);
+      }
 
       // Filtres et recherche
       ['filter-type', 'filter-region', 'filter-pays', 'filter-millesime', 'filter-note'].forEach(id => {
@@ -254,6 +262,269 @@ const PublicApp = (() => {
     bottles.forEach(b => grid.appendChild(createCard_(b)));
   }
 
+  function getLocalisationsWithPlan_() {
+    return _localisations.filter(loc => {
+      const slots = _layoutsCache[loc.id];
+      return loc && loc.id && Array.isArray(slots) && slots.length > 0;
+    });
+  }
+
+  function openLocalisationsModal_() {
+    const modal = document.getElementById('localisations-modal');
+    const panel = document.getElementById('localisations-panel');
+    const localisationsAvecPlan = getLocalisationsWithPlan_();
+
+    if (!modal || !panel) return;
+
+    if (localisationsAvecPlan.length === 0) {
+      panel.innerHTML = `
+        <button class="modal__close" onclick="PublicApp.closeModal()" aria-label="Fermer">✕</button>
+        <div class="localisation-modal__empty">
+          <h2 id="localisations-modal-title">Localisations</h2>
+          <p>Aucun plan de localisation n'est disponible pour le moment.</p>
+        </div>
+      `;
+    } else {
+      if (!_activeLocalisationId || !localisationsAvecPlan.some(loc => loc.id === _activeLocalisationId)) {
+        _activeLocalisationId = localisationsAvecPlan[0].id;
+      }
+      renderLocalisationsModal_();
+    }
+
+    _activeModal = 'localisations';
+    modal.classList.remove('hidden');
+    document.body.style.overflow = 'hidden';
+    panel.focus();
+  }
+
+  function renderLocalisationsModal_() {
+    const panel = document.getElementById('localisations-panel');
+    const localisationsAvecPlan = getLocalisationsWithPlan_();
+    const activeLocalisation = localisationsAvecPlan.find(loc => loc.id === _activeLocalisationId) || localisationsAvecPlan[0];
+
+    if (!panel || !activeLocalisation) return;
+
+    _activeLocalisationId = activeLocalisation.id;
+
+    panel.innerHTML = `
+      <button class="modal__close" onclick="PublicApp.closeModal()" aria-label="Fermer">✕</button>
+      <div class="localisation-modal__header">
+        <div>
+          <h2 id="localisations-modal-title">Localisations</h2>
+          <p class="localisation-modal__intro">Choisissez une localisation puis cliquez sur un emplacement pour ouvrir la bouteille associee.</p>
+        </div>
+      </div>
+      <div class="localisation-modal__content">
+        <aside class="localisation-modal__sidebar" aria-label="Liste des localisations">
+          ${localisationsAvecPlan.map(loc => `
+            <button
+              type="button"
+              class="localisation-tab${loc.id === _activeLocalisationId ? ' localisation-tab--active' : ''}"
+              data-localisation-id="${escapeAttr_(loc.id)}"
+            >
+              <span class="localisation-tab__name">${escapeHtml(loc.nom || 'Localisation')}</span>
+              ${loc.description ? `<span class="localisation-tab__meta">${escapeHtml(loc.description)}</span>` : ''}
+            </button>
+          `).join('')}
+        </aside>
+        <section class="localisation-modal__main" aria-labelledby="localisation-plan-title">
+          <div class="localisation-header localisation-header--modal">
+            <h3 id="localisation-plan-title" class="localisation-title localisation-title--modal">${escapeHtml(activeLocalisation.nom || 'Localisation')}</h3>
+            ${activeLocalisation.description ? `<p class="localisation-description localisation-description--modal">${escapeHtml(activeLocalisation.description)}</p>` : ''}
+          </div>
+          ${renderLocalisationSummary_(activeLocalisation.id)}
+          <div class="plan-wrapper plan-wrapper--modal" id="localisation-plan-host"></div>
+        </section>
+      </div>
+    `;
+
+    const planHost = document.getElementById('localisation-plan-host');
+    if (planHost) {
+      planHost.appendChild(renderLocalisationPlan_(activeLocalisation));
+    }
+
+    panel.querySelectorAll('[data-localisation-id]').forEach(button => {
+      button.addEventListener('click', () => {
+        _activeLocalisationId = button.getAttribute('data-localisation-id') || '';
+        renderLocalisationsModal_();
+      });
+    });
+  }
+
+  function renderLocalisationSummary_(localisationId) {
+    const bottles = allBottles.filter(bottle => bottle.localisation === localisationId && bottle.slot_id);
+    const count = bottles.length;
+    const rated = bottles.filter(bottle => bottle.note).length;
+
+    return `
+      <div class="localisation-summary" aria-label="Résumé de la localisation">
+        <div class="localisation-summary__item">
+          <span class="localisation-summary__value">${count}</span>
+          <span class="localisation-summary__label">Emplacements occupes</span>
+        </div>
+        <div class="localisation-summary__item">
+          <span class="localisation-summary__value">${rated}</span>
+          <span class="localisation-summary__label">Bouteilles notees</span>
+        </div>
+      </div>
+    `;
+  }
+
+  function renderLocalisationPlan_(localisation) {
+    const slots = _layoutsCache[localisation.id] || [];
+    const wrapper = document.createElement('div');
+    wrapper.className = 'plan-surface';
+
+    if (!Array.isArray(slots) || slots.length === 0) {
+      wrapper.innerHTML = '<p class="slot-picker__empty">Plan vide.</p>';
+      return wrapper;
+    }
+
+    const slotsValides = slots
+      .map(slot => {
+        if (!slot) return null;
+        const x = Number(slot.x);
+        const y = Number(slot.y);
+        const size = Number(slot.size);
+        if (!Number.isFinite(x) || !Number.isFinite(y) || !Number.isFinite(size) || size <= 0) return null;
+        return {
+          id: slot.id,
+          x,
+          y,
+          size,
+        };
+      })
+      .filter(Boolean);
+
+    if (slotsValides.length === 0) {
+      wrapper.innerHTML = '<p class="slot-picker__empty">Plan invalide : aucun slot exploitable.</p>';
+      return wrapper;
+    }
+
+    let minX = Infinity;
+    let maxX = -Infinity;
+    let minY = Infinity;
+    let maxY = -Infinity;
+
+    slotsValides.forEach(slot => {
+      minX = Math.min(minX, slot.x);
+      minY = Math.min(minY, slot.y);
+      maxX = Math.max(maxX, slot.x + slot.size);
+      maxY = Math.max(maxY, slot.y + slot.size);
+    });
+
+    const padding = 20;
+    const colors = getPlanColors_();
+    const viewW = Math.max(80, maxX - minX + (padding * 2));
+    const viewH = Math.max(80, maxY - minY + (padding * 2));
+    const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+    svg.setAttribute('class', 'plan-svg');
+    svg.setAttribute('viewBox', `${minX - padding} ${minY - padding} ${viewW} ${viewH}`);
+    svg.setAttribute('width', String(viewW));
+    svg.setAttribute('height', String(viewH));
+    svg.setAttribute('preserveAspectRatio', 'xMidYMid meet');
+    svg.setAttribute('role', 'img');
+    svg.setAttribute('aria-label', `Plan de la localisation ${escapeHtml(localisation.nom || '')}`);
+
+    slotsValides.forEach(slot => {
+
+      const bottle = allBottles.find(b => b.localisation === localisation.id && b.slot_id === slot.id);
+      if (!bottle) {
+        const emptySlot = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+        emptySlot.setAttribute('x', slot.x);
+        emptySlot.setAttribute('y', slot.y);
+        emptySlot.setAttribute('width', slot.size);
+        emptySlot.setAttribute('height', slot.size);
+        emptySlot.setAttribute('fill', colors.background);
+        emptySlot.setAttribute('stroke', colors.border);
+        emptySlot.setAttribute('stroke-width', '1');
+        emptySlot.setAttribute('rx', '4');
+        svg.appendChild(emptySlot);
+        return;
+      }
+
+      renderBottleSlot_(svg, slot, bottle, colors);
+    });
+
+    wrapper.appendChild(svg);
+    return wrapper;
+  }
+
+  function renderBottleSlot_(svg, slot, bottle, colors) {
+    const typeColor = TYPE_COLORS[bottle.type] || 'var(--c-type-autre)';
+    const fontSize = Math.max(8, Math.min(11, Math.floor(slot.size * 0.17)));
+    const noteSize = Math.max(8, fontSize - 1);
+    const rect = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+    rect.setAttribute('x', slot.x);
+    rect.setAttribute('y', slot.y);
+    rect.setAttribute('width', slot.size);
+    rect.setAttribute('height', slot.size);
+    rect.setAttribute('fill', typeColor);
+    rect.setAttribute('stroke', colors.text);
+    rect.setAttribute('stroke-width', '1.5');
+    rect.setAttribute('rx', '4');
+    rect.setAttribute('class', 'bottle-slot');
+    rect.setAttribute('role', 'button');
+    rect.setAttribute('tabindex', '0');
+    rect.setAttribute('aria-label', `${escapeHtml(bottle.producteur || '')} ${escapeHtml(bottle.cuvee || '')}`);
+
+    const open = () => showModal_(bottle);
+    rect.addEventListener('click', open);
+    rect.addEventListener('keydown', event => {
+      if (event.key === 'Enter' || event.key === ' ') {
+        event.preventDefault();
+        open();
+      }
+    });
+    svg.appendChild(rect);
+
+    const label = formatBottleSlotLabel_(bottle);
+    const labelEl = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+    labelEl.setAttribute('x', slot.x + (slot.size / 2));
+    labelEl.setAttribute('y', slot.y + (slot.size / 2) - Math.max(5, Math.floor(slot.size * 0.14)));
+    labelEl.setAttribute('text-anchor', 'middle');
+    labelEl.setAttribute('font-size', String(fontSize));
+    labelEl.setAttribute('font-weight', '600');
+    labelEl.setAttribute('fill', colors.text);
+    labelEl.setAttribute('class', 'bottle-label');
+    labelEl.setAttribute('pointer-events', 'none');
+    labelEl.textContent = label;
+    svg.appendChild(labelEl);
+
+    if (bottle.note) {
+      const noteEl = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+      noteEl.setAttribute('x', slot.x + (slot.size / 2));
+      noteEl.setAttribute('y', slot.y + (slot.size / 2) + Math.max(7, Math.floor(slot.size * 0.16)));
+      noteEl.setAttribute('text-anchor', 'middle');
+      noteEl.setAttribute('font-size', String(noteSize));
+      noteEl.setAttribute('fill', colors.text);
+      noteEl.setAttribute('class', 'bottle-note');
+      noteEl.setAttribute('pointer-events', 'none');
+      noteEl.textContent = starsText_(Number(bottle.note));
+      svg.appendChild(noteEl);
+    }
+  }
+
+  function getPlanColors_() {
+    const root = getComputedStyle(document.documentElement);
+    return {
+      background: (root.getPropertyValue('--c-bg-raised') || '#221012').trim(),
+      border: (root.getPropertyValue('--c-border') || '#3D2025').trim(),
+      text: (root.getPropertyValue('--c-text') || '#F0EAE0').trim(),
+    };
+  }
+
+  function formatBottleSlotLabel_(bottle) {
+    const producer = bottle.producteur || '';
+    const cuvee = bottle.cuvee || '';
+    const label = producer && cuvee
+      ? `${producer} · ${cuvee}`
+      : producer || cuvee || 'Sans nom';
+
+    if (label.length <= 18) return label;
+    return `${label.slice(0, 15)}…`;
+  }
+
   function createCard_(bottle) {
     const typeLabel = TYPE_LABELS[bottle.type] || bottle.type || 'Autre';
     const typeColor = TYPE_COLORS[bottle.type] || 'var(--c-type-autre)';
@@ -295,6 +566,7 @@ const PublicApp = (() => {
   // ── Modal de détail ───────────────────────────────────────────────────────
 
   function showModal_(bottle) {
+    const localisationsModal = document.getElementById('localisations-modal');
     const modal  = document.getElementById('bottle-modal');
     const panel  = document.getElementById('modal-panel');
     const typeLabel = TYPE_LABELS[bottle.type] || bottle.type || 'Autre';
@@ -362,6 +634,13 @@ const PublicApp = (() => {
       </div>
     `;
 
+    // Si l'utilisateur ouvre une bouteille depuis la pop-up localisations,
+    // masquer cette pop-up pour afficher correctement le détail au premier plan.
+    if (localisationsModal) {
+      localisationsModal.classList.add('hidden');
+    }
+
+  _activeModal = 'bottle';
     modal.classList.remove('hidden');
     document.body.style.overflow = 'hidden';
     panel.focus();
@@ -442,6 +721,8 @@ const PublicApp = (() => {
 
   function closeModal() {
     document.getElementById('bottle-modal').classList.add('hidden');
+    document.getElementById('localisations-modal').classList.add('hidden');
+    _activeModal = null;
     document.body.style.overflow = '';
   }
 
@@ -464,6 +745,11 @@ const PublicApp = (() => {
     }
     html += '</span>';
     return html;
+  }
+
+  function starsText_(note) {
+    const n = Math.min(3, Math.max(1, note));
+    return `${'★'.repeat(n)}${'☆'.repeat(3 - n)}`;
   }
 
   function noteRow_(note) {
@@ -558,7 +844,7 @@ const PublicApp = (() => {
   }
 
   // ── API publique ──────────────────────────────────────────────────────────
-  return { init, closeModal };
+  return { init, closeModal, starsHtml: starsHtml_, escapeAttr: escapeAttr_, formatPrice: formatPrice_, escapeHtml };
 })();
 
 // Auto-démarrage

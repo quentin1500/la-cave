@@ -141,9 +141,9 @@ h4 { font-size: var(--text-lg);  font-weight: 500; }
   z-index: 100;
   padding: var(--sp-4) 0;
 }
-.header .container { display: flex; align-items: center; justify-content: space-between; }
+.header .container { display: flex; align-items: center; justify-content: space-between; gap: var(--sp-3); }
 
-.header__brand { display: flex; align-items: center; gap: var(--sp-3); }
+.header__brand { display: flex; align-items: center; gap: var(--sp-3); min-width: 0; flex: 1 1 auto; }
 .header__logo  { width: 28px; height: 70px; color: var(--c-bordeaux-light); flex-shrink: 0; }
 .header__title {
   font-family: var(--font-display);
@@ -158,7 +158,27 @@ h4 { font-size: var(--text-lg);  font-weight: 500; }
   letter-spacing: 0.06em;
   text-transform: uppercase;
 }
-.header__nav { display: flex; align-items: center; gap: var(--sp-3); }
+.header__nav { display: flex; align-items: center; gap: var(--sp-2); justify-content: flex-end; flex: 0 0 auto; }
+
+.btn.header-action {
+  padding: 4px 8px;
+  min-height: 30px;
+  gap: 6px;
+  font-size: 11px;
+}
+
+.btn.header-action svg {
+  width: 13px;
+  height: 13px;
+  flex-shrink: 0;
+}
+
+.btn.header-action .header-action__label {
+  display: inline-block;
+  max-width: 112px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
 
 /* ── 5. Boutons ────────────────────────────────────────────────── */
 .btn {
@@ -431,6 +451,7 @@ h4 { font-size: var(--text-lg);  font-weight: 500; }
   margin-bottom: var(--sp-3);
   line-height: 1.3;
   display: -webkit-box;
+  line-clamp: 2;
   -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
   overflow: hidden;
@@ -573,6 +594,11 @@ h4 { font-size: var(--text-lg);  font-weight: 500; }
 .modal__content {
   display: grid;
   grid-template-columns: 260px 1fr;
+}
+.modal__panel--wide {
+  width: min(1280px, calc(100vw - 1rem));
+  max-height: calc(100vh - 1rem);
+  overflow: hidden;
 }
 .modal__image {
   background: var(--c-bg-raised);
@@ -999,6 +1025,284 @@ textarea.form-control { resize: vertical; min-height: 90px; }
   text-align: center;
 }
 
+/* ── A5. Visualisation des localisations ───────────────────────── */
+.localisation-modal {
+  padding: var(--sp-5);
+}
+
+.localisation-modal__header {
+  padding-right: var(--sp-8);
+  margin-bottom: var(--sp-3);
+}
+
+.localisation-modal__intro {
+  margin-top: var(--sp-1);
+  font-size: var(--text-sm);
+  color: var(--c-text-muted);
+  max-width: 62ch;
+}
+
+.localisation-modal__content {
+  display: grid;
+  grid-template-columns: 220px minmax(0, 1fr);
+  gap: var(--sp-4);
+  align-items: start;
+  min-height: 0;
+}
+
+.localisation-modal__sidebar {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-2);
+  max-height: calc(100vh - 12rem);
+  overflow: auto;
+  padding-right: var(--sp-1);
+}
+
+.localisation-modal__main {
+  min-width: 0;
+}
+
+.localisation-modal__empty {
+  padding: var(--sp-10) var(--sp-6);
+  text-align: center;
+}
+
+.localisation-tab {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  width: 100%;
+  text-align: left;
+  padding: var(--sp-3);
+  border: 1px solid var(--c-border);
+  border-radius: var(--r-lg);
+  background: var(--c-bg-raised);
+  color: var(--c-text);
+  cursor: pointer;
+  transition: border-color var(--t-fast), background var(--t-fast), transform var(--t-fast);
+}
+
+.localisation-tab:hover {
+  border-color: var(--c-bordeaux-light);
+  background: var(--c-bg-card);
+}
+
+.localisation-tab--active {
+  border-color: var(--c-gold);
+  background: linear-gradient(160deg, rgba(200,160,53,0.12), rgba(42,19,22,0.8));
+  box-shadow: inset 0 0 0 1px rgba(200,160,53,0.18);
+}
+
+.localisation-tab__name {
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.localisation-tab__meta {
+  font-size: 11px;
+  color: var(--c-text-muted);
+  line-height: 1.35;
+}
+
+.localisation-header--modal {
+  margin-bottom: var(--sp-2);
+}
+
+.localisation-title--modal {
+  font-size: clamp(1.1rem, 1.9vw, 1.45rem);
+  margin-bottom: 2px;
+}
+
+.localisation-description--modal {
+  font-size: 12px;
+  line-height: 1.45;
+  margin-bottom: 0;
+}
+
+.localisation-summary {
+  display: flex;
+  gap: var(--sp-2);
+  flex-wrap: wrap;
+  margin-bottom: var(--sp-3);
+}
+
+.localisation-summary__item {
+  min-width: 120px;
+  padding: var(--sp-2) var(--sp-3);
+  background: var(--c-bg-raised);
+  border: 1px solid var(--c-border);
+  border-radius: var(--r-md);
+}
+
+.localisation-summary__value {
+  display: block;
+  font-family: var(--font-display);
+  font-size: var(--text-lg);
+  color: var(--c-gold);
+  line-height: 1;
+}
+
+.localisation-summary__label {
+  display: block;
+  margin-top: 2px;
+  font-size: 10px;
+  color: var(--c-text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.plan-wrapper {
+  background: var(--c-bg-raised);
+  border: 1px solid var(--c-border);
+  border-radius: var(--r-lg);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+}
+
+.plan-wrapper--modal {
+  height: calc(100vh - 11rem);
+  max-height: 900px;
+  padding: var(--sp-3);
+  overflow: hidden;
+}
+
+.plan-surface {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0;
+}
+
+.plan-svg {
+  display: block;
+  width: auto;
+  height: auto;
+  max-width: 100%;
+  max-height: 100%;
+  image-rendering: geometricPrecision;
+}
+
+.bottle-slot {
+  cursor: pointer;
+  transition: filter var(--t-base), transform var(--t-base);
+}
+
+.bottle-slot:hover {
+  filter: brightness(1.15);
+  transform: scale(1.05);
+  transform-origin: center;
+}
+
+.bottle-slot:focus-visible {
+  outline: 2px solid var(--c-gold);
+  outline-offset: 2px;
+}
+
+.bottle-label,
+.bottle-note {
+  font-family: var(--font-body);
+  user-select: none;
+}
+
+.localisation-modal .bottle-label,
+.localisation-modal .bottle-note {
+  paint-order: stroke;
+  stroke: rgba(0, 0, 0, 0.5);
+  stroke-width: 0.9;
+  stroke-linejoin: round;
+}
+
+@media (max-width: 1024px) {
+  .modal__panel--wide {
+    width: calc(100vw - 0.75rem);
+    max-height: calc(100vh - 0.75rem);
+  }
+  .localisation-modal {
+    padding: var(--sp-4);
+  }
+  .localisation-modal__content {
+    grid-template-columns: 1fr;
+    gap: var(--sp-3);
+  }
+  .localisation-modal__sidebar {
+    flex-direction: row;
+    overflow: auto hidden;
+    max-height: none;
+    padding-right: 0;
+    padding-bottom: 2px;
+  }
+  .localisation-tab {
+    min-width: 160px;
+    flex: 0 0 auto;
+  }
+  .plan-wrapper--modal {
+    height: calc(100vh - 13rem);
+    max-height: 760px;
+  }
+}
+
+@media (max-width: 768px) {
+  .localisation-modal {
+    padding: var(--sp-3);
+  }
+  .localisation-modal__header {
+    margin-bottom: var(--sp-2);
+    padding-right: var(--sp-6);
+  }
+  .localisation-modal__intro {
+    font-size: 12px;
+  }
+  .localisation-tab__meta,
+  .localisation-description--modal,
+  .localisation-summary__label {
+    display: none;
+  }
+  .localisation-summary {
+    margin-bottom: var(--sp-2);
+  }
+  .localisation-summary__item {
+    padding: var(--sp-1) var(--sp-2);
+    min-width: 0;
+    flex: 1 1 120px;
+  }
+  .plan-wrapper--modal {
+    height: calc(100vh - 10.5rem);
+    max-height: 680px;
+    padding: var(--sp-1);
+  }
+}
+
+@media (max-width: 480px) {
+  .modal__panel--wide {
+    width: calc(100vw - 0.5rem);
+    max-height: calc(100vh - 0.5rem);
+  }
+  .localisation-modal {
+    padding: var(--sp-2);
+  }
+  .localisation-modal__intro,
+  .localisation-summary {
+    display: none;
+  }
+  .localisation-tab {
+    min-width: 132px;
+    border-radius: var(--r-md);
+    padding: var(--sp-2);
+  }
+  .localisation-title--modal {
+    font-size: 1rem;
+  }
+  .plan-wrapper--modal {
+    height: calc(100vh - 8rem);
+    max-height: 640px;
+  }
+}
+
 /* ── A5. Recherche OpenFoodFacts ───────────────────────────────── */
 .off-search {
   background: var(--c-bg-raised);
@@ -1068,8 +1372,31 @@ textarea.form-control { resize: vertical; min-height: 90px; }
     border-radius: var(--r-xl) var(--r-xl) 0 0;
     min-height: 240px;
   }
+  .localisation-modal__content { grid-template-columns: 1fr; }
+  .localisation-modal__sidebar {
+    flex-direction: row;
+    overflow: auto hidden;
+    max-height: none;
+    padding-right: 0;
+    padding-bottom: var(--sp-2);
+  }
+  .localisation-tab {
+    min-width: 170px;
+    flex: 0 0 auto;
+  }
 }
 @media (max-width: 768px) {
+  .header .container { gap: var(--sp-2); }
+  .header__logo { width: 24px; height: 58px; }
+  .header__title { font-size: var(--text-xl); }
+  .header__subtitle { font-size: 10px; letter-spacing: 0.04em; }
+  .btn.header-action {
+    padding: 4px 6px;
+    min-height: 28px;
+    gap: 4px;
+    font-size: 10px;
+  }
+  .btn.header-action .header-action__label { max-width: 86px; }
   .bottle-grid { grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: var(--sp-4); }
   .bottle-card__image { aspect-ratio: 7/8; }
   .controls__bar { flex-direction: column; align-items: stretch; gap: var(--sp-2); }
@@ -1106,9 +1433,40 @@ textarea.form-control { resize: vertical; min-height: 90px; }
   .modal__image img { object-fit: contain; }
   .admin-toolbar .container { flex-direction: column; align-items: stretch; }
   .demo-banner { font-size: 11px; padding: var(--sp-2) var(--sp-4); white-space: normal; text-align: center; }
+  .localisation-title { font-size: var(--text-2xl); }
+  .localisation-modal { padding: var(--sp-3); }
+  .localisation-modal__header { padding-right: var(--sp-6); }
+  .localisation-summary__item { min-width: 0; flex: 1 1 140px; }
+  .plan-wrapper--modal {
+    height: calc(100vh - 10.5rem);
+    max-height: 680px;
+    padding: var(--sp-1);
+  }
 }
 @media (max-width: 480px) {
   .container { padding: 0 var(--sp-3); }
+  .header__brand { gap: var(--sp-2); }
+  .header__logo { width: 20px; height: 48px; }
+  .header__title { font-size: var(--text-lg); letter-spacing: 0.02em; }
+  .header__subtitle { display: none; }
+  .header__nav { gap: 6px; }
+  .btn.header-action {
+    padding: 4px;
+    min-width: 28px;
+    min-height: 28px;
+    justify-content: center;
+  }
+  .btn.header-action .header-action__label {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
+  }
   .bottle-grid { grid-template-columns: repeat(2, 1fr); gap: var(--sp-3); }
   .bottle-card__image { aspect-ratio: 1/1; }
   .hero { padding: var(--sp-8) 0; }
@@ -1120,5 +1478,12 @@ textarea.form-control { resize: vertical; min-height: 90px; }
     height: 170px;
     min-height: 170px;
     max-height: 170px;
+  }
+  .btn--sm { padding: var(--sp-1) var(--sp-2); }
+  .localisation-tab { min-width: 132px; }
+  .plan-wrapper--modal {
+    height: calc(100vh - 8rem);
+    max-height: 640px;
+    padding: var(--sp-1);
   }
 }

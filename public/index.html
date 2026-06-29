@@ -24,12 +24,19 @@
         </div>
       </div>
       <nav class="header__nav" aria-label="Navigation principale">
-        <a href="admin.html" class="btn btn--ghost btn--sm" aria-label="Accéder à l'interface d'administration">
+        <button type="button" id="open-localisations" class="btn btn--ghost btn--sm header-action" aria-label="Voir les plans de localisations">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+            <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
+            <polyline points="9 22 9 12 15 12 15 22"/>
+          </svg>
+          <span class="header-action__label">Localisations</span>
+        </button>
+        <a href="admin.html" class="btn btn--ghost btn--sm header-action" aria-label="Accéder à l'interface d'administration">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
             <circle cx="12" cy="8" r="4"/>
             <path d="M6 20v-2a6 6 0 0 1 12 0v2"/>
           </svg>
-          Admin
+          <span class="header-action__label">Admin</span>
         </a>
       </nav>
     </div>
@@ -138,7 +145,6 @@
       <!-- Grille -->
       <div id="cave-layout" class="cave-layout hidden" aria-label="Plan de la cave" style="margin-bottom:1rem"></div>
       <div id="bottle-grid" class="bottle-grid hidden" role="list" aria-label="Collection de bouteilles"></div>
-
     </div>
   </main>
 
@@ -152,6 +158,19 @@
   >
     <div class="modal__backdrop" id="modal-backdrop" aria-hidden="true"></div>
     <div class="modal__panel" id="modal-panel" tabindex="-1">
+      <!-- Contenu injecté dynamiquement par public.js -->
+    </div>
+  </div>
+
+  <div
+    id="localisations-modal"
+    class="modal hidden"
+    role="dialog"
+    aria-modal="true"
+    aria-labelledby="localisations-modal-title"
+  >
+    <div class="modal__backdrop" id="localisations-backdrop" aria-hidden="true"></div>
+    <div class="modal__panel modal__panel--wide localisation-modal" id="localisations-panel" tabindex="-1">
       <!-- Contenu injecté dynamiquement par public.js -->
     </div>
   </div>
@@ -170,7 +189,7 @@
   </footer>
 
   <!-- ── Scripts ────────────────────────────────────────────────────────── -->
-  <script src="js/config.js"></script>
+  <script src="js/config.local.js"></script>
   <script src="js/sheets-api.js"></script>
   <script src="js/openfoodfacts-api.js"></script>
   <script src="js/public.js"></script>

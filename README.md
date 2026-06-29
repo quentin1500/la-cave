@@ -9,19 +9,24 @@ Consultez votre collection, gérez les emplacements, suivez vos acquisitions.
 
 | Interface | Description |
 |---|---|
-| **Publique** (`index.html`) | Consultation de la cave, filtres, fiches détaillées avec plan de localisation |
+| **Publique** (`index.html`) | Consultation de la cave, filtres, fiches détaillées et visualisation des localisations |
 | **Admin** (`admin.html`) | Ajout, modification, archivage de bouteilles ; gestion des localisations et de leurs plans |
 
 ### Détail des fonctionnalités
 
-**Interface publique**
+**Interface publique** (`index.html`)
 - Grille de bouteilles filtrables par type, région, pays, millésime et recherche texte
 - Statistiques : nombre de références, types, régions, valeur estimée
 - Fiche détaillée au clic : infos complètes, notes personnelles, note en étoiles (1-3 ★), emplacement
-- Si la bouteille est associée à un slot de plan, **visualisation du plan de la localisation** avec l'emplacement mis en évidence
 - **Note en étoiles** (1 à 3) affichée sur la carte et dans le détail de chaque bouteille
+- Bouton **Localisations** dans le header ouvrant une pop-up dédiée
+- Pop-up avec sélecteur de localisations et plan focalisé sur une localisation à la fois
+- **Plan visuel** : slots positionnés avec les bouteilles affichées par couleur (type : rouge, blanc, etc.)
+- **Info bouteille** : libellé court (producteur + cuvée) + note en étoiles (★★★) dans chaque slot
+- Clic sur une bouteille → fiche détaillée complète (modal)
+- **Accessible en mode offline** tant que la page publique reste ouverte après chargement initial
 
-**Interface admin** (authentification par mot de passe)
+**Interface admin** (`admin.html`) (authentification par mot de passe)
 - CRUD complet : ajout, modification, archivage (avec commentaire), restauration
 - **Notation** : attribution d'une note de 1 à 3 étoiles via sélecteur interactif dans le formulaire
 - Pré-remplissage des fiches depuis **OpenFoodFacts** (recherche par nom ou code-barres)
@@ -65,7 +70,9 @@ la-cave/
 │   │   ├── 004-integration-openfoodfacts.md
 │   │   ├── 005-structure-emplacement.md
 │   │   ├── 006-modele-donnees-bouteille.md
-│   │   └── 007-localisations.md
+│   │   ├── 007-localisations.md
+│   │   ├── 008-chargement-complet-session-hors-reseau.md
+│   │   └── 009-visualisation-plans-localisations.md
 │   └── guides/                     # Guides de configuration
 │       ├── setup-apps-script.md
 │       ├── setup-github-pages.md
@@ -79,7 +86,7 @@ la-cave/
 │   └── generate-hash.html          # Outil local pour générer le hash du MDP admin
 │
 └── public/                         # Site web (déployé sur GitHub Pages)
-    ├── index.html                  # Page publique
+    ├── index.html                  # Page publique (grille de bouteilles + localisations)
     ├── admin.html                  # Interface d'administration
     ├── css/
     │   └── style.css
@@ -88,7 +95,7 @@ la-cave/
         ├── auth.js                 # Authentification admin
         ├── sheets-api.js           # Client API Google Sheets
         ├── openfoodfacts-api.js    # Client API OpenFoodFacts
-        ├── public.js               # Logique page publique
+        ├── public.js               # Logique page publique (index.html)
         └── admin.js                # Logique interface admin
 ```
 

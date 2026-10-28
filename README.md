@@ -35,6 +35,7 @@ Consultez votre collection, gérez les emplacements, suivez vos acquisitions.
 - **Gestion des localisations** : espaces de stockage nommés (cave, armoire à vins…) avec description
 - **Éditeur de plan** par localisation : ajout et positionnement libre de slots (drag & drop)
 - **Sélection visuelle de l'emplacement** dans le formulaire bouteille : le plan de la localisation s'affiche et l'on clique sur un slot pour y associer la bouteille
+- **Disponibilité des emplacements** : chaque case indique « Libre » ou « Occupé » ; le nombre de bouteilles non archivées et leur détail sont disponibles au survol. Une sélection occupée déclenche un avertissement sans bloquer l'enregistrement ; la bouteille en cours d'édition est exclue du décompte.
 - Tableau des bouteilles actives et section archives avec détail consultable
 
 ---

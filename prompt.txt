@@ -6,5 +6,6 @@ Par défaut, un ajout sans préciser le nombre de bouteilles à ajouter crée un
 
 Pose des questions si besoin, pour compléter la demande, détailler les besoins, clarifier, faire des choix, etc.
 
-==
+--
 
+Lors du choix de l'emplacement, il faut pouvoir voir les emplacements disponibles et ceux déjà occupés, afin de sélectionner correctement les emplacements pour chaque bouteille ajoutée. Indiqué lorsqu'un emplacement est déjà occupé, afin d'éviter les conflits, mais ne pas bloqué la sauvegarde.

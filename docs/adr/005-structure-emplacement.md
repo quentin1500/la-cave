@@ -29,7 +29,7 @@ Plusieurs niveaux de granularité sont possibles, du plus simple au plus complex
 
 - Les deux champs sont optionnels (une bouteille sans emplacement défini est valide)
 - Il n'y a pas de contrainte d'unicité de l'emplacement en base (plusieurs bouteilles peuvent partager un emplacement dans un casier multi-places)
-- La quantité (`quantite`) représente le nombre d'exemplaires à cet emplacement
+- Chaque bouteille physique possède sa propre fiche (ADR-006) : aucun champ `quantite` n'est stocké par emplacement. La quantité saisie lors d'un ajout en lot détermine uniquement le nombre de fiches à créer.
 
 ## Conséquences
 
@@ -55,8 +55,10 @@ L'introduction de la notion de **localisation** (ADR-007) remplace le champ `sec
 
 Dans le Lot 2 l'application introduit un plan de cave visuel :
 
-- Un **layout** représentant le plan (slots positionnés librement) est stocké dans l'onglet `Layout` du Google Sheet (cellule A1, JSON sérialisé), lu/écrit via Apps Script.
+- Un **layout** représentant le plan (slots positionnés librement) est stocké par localisation dans l'onglet `Layouts` du Google Sheet (`localisation | layout_json`), lu/écrit via Apps Script (ADR-007).
 - Chaque slot peut être un carré représentant un emplacement pour une bouteille, avec `x`, `y`, `size` et `id`.
 - Le modèle de bouteille peut référencer un `slot_id` optionnel pour lier une bouteille à un emplacement graphique.
 
-Pour rester rétrocompatible, `rang` et `colonne` restent supportés — le rendu visuel pourra utiliser le `slot_id` ou déduire une position à partir de `rang`/`colonne`.
+Pour rester rétrocompatible, `rang` et `colonne` restent supportés en saisie unitaire. Pour un ajout en lot, l'emplacement de chaque bouteille est défini par le couple `localisation` / `slot_id` ; les coordonnées manuelles sont masquées et vidées pour éviter de les recopier sur toutes les bouteilles.
+
+L'occupation d'un slot est signalée dans le formulaire, sans imposer d'unicité ni bloquer l'enregistrement. Les règles de sélection et de calcul de l'occupation sont précisées dans l'ADR-007.

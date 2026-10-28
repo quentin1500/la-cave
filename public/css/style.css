@@ -986,6 +986,7 @@ textarea.form-control { resize: vertical; min-height: 90px; }
 .slot-picker__slot {
   position: absolute;
   display: flex;
+  flex-direction: column;
   align-items: center;
   justify-content: center;
   font-size: var(--text-xs);
@@ -1001,6 +1002,23 @@ textarea.form-control { resize: vertical; min-height: 90px; }
   transition: border-color var(--t-fast), background var(--t-fast), color var(--t-fast);
   user-select: none;
 }
+.slot-picker__label,
+.slot-picker__status {
+  max-width: 100%;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+.slot-picker__status {
+  font-size: 0.625rem;
+}
+.slot-picker__slot--occupied {
+  border-color: var(--c-warning);
+  border-style: dashed;
+}
+.slot-picker__slot--occupied .slot-picker__status {
+  color: var(--c-warning);
+}
 .slot-picker__slot:hover {
   border-color: var(--c-bordeaux-light);
   background: var(--c-bg-card);
@@ -1012,9 +1030,16 @@ textarea.form-control { resize: vertical; min-height: 90px; }
 }
 .slot-picker__slot--selected {
   border-color: var(--c-gold);
+  border-style: solid;
   background: var(--c-bg-card-hov);
   color: var(--c-gold);
   font-weight: 600;
+}
+.slot-picker__warning {
+  margin-top: var(--sp-2);
+  color: var(--c-warning);
+  font-size: var(--text-sm);
+  overflow-wrap: anywhere;
 }
 
 .slot-picker__empty {

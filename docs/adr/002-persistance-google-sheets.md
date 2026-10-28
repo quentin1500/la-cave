@@ -65,6 +65,15 @@ fetch(url, {
 | POST | `{ action: 'deleteLocalisation', id, apiKey }` | Oui — supprime aussi le layout associé |
 | POST | `{ action: 'saveLayout', localisation_id, data, apiKey }` | Oui |
 
+### Écriture des ajouts en lot
+
+- Le navigateur réutilise l'action `add` existante, avec **un appel séquentiel par bouteille** et un UUID généré côté client pour chaque fiche (ADR-006). Aucune action API de création en masse ni migration Apps Script n'est nécessaire.
+- Les données communes sont copiées pour chaque appel ; l'emplacement est propre à chaque bouteille selon les sélections du formulaire (ADR-007).
+- Le formulaire indique la progression et empêche les soumissions multiples ainsi que sa fermeture pendant l'enregistrement.
+- Le lot n'est **pas transactionnel** : au premier échec, les enregistrements confirmés sont conservés, sans annulation automatique.
+- Après un succès partiel, la quantité et les emplacements du formulaire sont réduits aux seuls ajouts non confirmés. Les informations communes sont conservées et la liste des bouteilles est rechargée ; une nouvelle soumission ne rejoue pas les ajouts déjà confirmés.
+- Un échec réseau peut survenir après une écriture réussie mais avant la réception de sa confirmation. L'API ne garantit pas l'idempotence d'une nouvelle soumission : l'interface demande de vérifier la cave avant de réessayer et ne lance pas de nouvelle tentative automatique.
+
 ## Conséquences
 
 **Positif :**
@@ -77,6 +86,7 @@ fetch(url, {
 - Pas de requêtes complexes (filtrage côté client uniquement)
 - Limites Apps Script : 6 min/exécution, quotas journaliers (largement suffisants pour usage personnel)
 - Données en clair dans Google Sheets (acceptable pour une cave personnelle)
+- La durée d'un ajout en lot augmente avec le nombre d'appels ; des succès partiels et des confirmations perdues sont possibles, sans garantie de création atomique ni d'absence de doublons après une reprise manuelle
 
 ## Alternatives considérées
 

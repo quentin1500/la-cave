@@ -693,17 +693,30 @@ const AdminApp = (() => {
       const el = document.createElement('div');
       el.className = 'slot-picker__slot';
       const isSelected = selected.some(placement => placement.slot_id === s.id);
+      const occupants = getSlotOccupants_(locId, s.id);
+      const occupied = occupants.length > 0;
+      const label = s.label || String(idx + 1);
+      const status = occupied ? `Occupé (${occupants.length})` : 'Libre';
+      el.classList.toggle('slot-picker__slot--occupied', occupied);
       if (isSelected) el.classList.add('slot-picker__slot--selected');
       el.style.left   = (s.x || 0) + 'px';
       el.style.top    = (s.y || 0) + 'px';
       el.style.width  = (s.size || 60) + 'px';
       el.style.height = (s.size || 60) + 'px';
       el.dataset.slotId = s.id;
-      el.textContent    = s.label || String(idx + 1);
+      const labelEl = document.createElement('span');
+      labelEl.className = 'slot-picker__label';
+      labelEl.textContent = label;
+      const statusEl = document.createElement('span');
+      statusEl.className = 'slot-picker__status';
+      statusEl.textContent = occupied ? 'Occupé' : 'Libre';
+      el.append(labelEl, statusEl);
+      const names = occupants.map(bottle => [bottle.producteur, bottle.cuvee, bottle.millesime].filter(Boolean).join(' ') || 'Bouteille sans nom');
+      el.title = `Emplacement ${label} : ${status}${names.length ? '\n' + names.join('\n') : ''}`;
       el.setAttribute('role', 'button');
       el.setAttribute('tabindex', '0');
       el.setAttribute('aria-pressed', String(isSelected));
-      el.setAttribute('aria-label', `Emplacement ${s.label || String(idx + 1)}`);
+      el.setAttribute('aria-label', `Emplacement ${label} : ${status}${names.length ? ', ' + names.join(', ') : ''}`);
 
       const toggle = () => {
         if (_savingBottles) return;
@@ -740,6 +753,14 @@ const AdminApp = (() => {
     picker.appendChild(canvas);
   }
 
+  function getSlotOccupants_(localisation, slotId) {
+    const editingId = document.getElementById('form-id').value;
+    return allBottles.filter(bottle => !isArchived_(bottle)
+      && bottle.id !== editingId
+      && bottle.localisation === localisation
+      && bottle.slot_id === slotId);
+  }
+
   function updateQuantity_() {
     const editing = Boolean(document.getElementById('form-id').value);
     const quantity = editing ? 1 : Number(document.getElementById('f-quantity').value || 1);
@@ -758,6 +779,15 @@ const AdminApp = (() => {
       return `${loc ? loc.nom : placement.localisation} : ${slot ? slot.label || String(slots.indexOf(slot) + 1) : placement.slot_id}`;
     });
     summary.textContent = `${_selectedPlacements.length} / ${quantity} emplacements sélectionnés${labels.length ? ' : ' + labels.join(' ; ') : ''}`;
+    const occupiedLabels = labels.filter((label, index) => {
+      const placement = _selectedPlacements[index];
+      return getSlotOccupants_(placement.localisation, placement.slot_id).length > 0;
+    });
+    const warning = document.getElementById('f-slot-warning');
+    warning.classList.toggle('hidden', occupiedLabels.length === 0);
+    warning.textContent = occupiedLabels.length
+      ? `Attention, emplacement(s) déjà occupé(s) : ${occupiedLabels.join(' ; ')}. L'enregistrement reste possible.`
+      : '';
     if (!_savingBottles) {
       document.getElementById('form-submit-btn').textContent = editing
         ? 'Enregistrer les modifications'

@@ -43,6 +43,16 @@ Bouteille
 ├─ notes_personnelles   Texte libre (impressions, accords, occasions)
 ├─ date_creation        Chaîne ISO 8601 datetime (auto-générée)
 └─ date_modification    Chaîne ISO 8601 datetime (auto-mise à jour)
+```
+
+### Une fiche par bouteille physique
+
+- Chaque exemplaire possède un UUID distinct et correspond à une ligne de l'onglet `Bouteilles`, y compris lors d'un achat en lot.
+- La quantité est un paramètre du formulaire d'ajout, pas un attribut persistant de la bouteille : aucun champ `quantite`, identifiant de lot ou changement de colonnes n'est introduit.
+- La quantité vaut 1 par défaut, y compris si le champ est laissé vide. Elle doit être un entier positif ; elle n'est pas proposée lors de l'édition d'une fiche existante.
+- Pour un lot, les attributs saisis sont copiés sur chaque fiche, sauf l'emplacement : chaque bouteille reçoit son propre couple `localisation` / `slot_id` (ADR-007), avec `rang` et `colonne` vides (ADR-005).
+- `prix_achat` et `valeur_estimee` sont des montants **par bouteille**, pas des totaux de lot.
+- Les dates de création et de modification restent gérées individuellement par le serveur.
 
 ### Archivage
 
@@ -57,7 +67,6 @@ archive_comment    Texte libre — commentaire ajouté lors de l'archivage
 
 Conséquence : l'interface publique n'affiche pas les bouteilles archivées, mais
 l'historique est conservé et consultable via l'interface d'administration.
-```
 
 ### Types normalisés
 
@@ -94,10 +103,12 @@ Génération : `crypto.randomUUID()` (API Web Crypto, disponible dans tous les n
 **Positif :**
 - Modèle complet couvrant tous les cas d'usage exprimés
 - Types normalisés permettant le filtrage et le coloriage
+- Suivi individuel de l'emplacement, de la modification et de l'archivage des bouteilles achetées en lot, sans migration du schéma
 
 **Négatif :**
 - Pas de gestion des fournisseurs / cavistes (hors périmètre)
 - Pas d'historique de dégustation structuré (les notes libres compensent pour le Lot 1)
+- Les informations communes sont dupliquées et aucun regroupement persistant par lot n'est conservé
 
 ## Alternatives considérées
 
@@ -106,3 +117,4 @@ Génération : `crypto.randomUUID()` (API Web Crypto, disponible dans tous les n
 | Cépage(s) en tableau | Plus complexe à stocker dans Sheets — chaîne séparée par virgule suffit |
 | Notation de 1 à 5 étoiles | Inclus dans les notes personnelles en Lot 1, peut être ajouté en Lot 2 |
 | Prix en centimes (entier) | Décimal plus naturel pour la saisie utilisateur |
+| Une fiche avec une quantité persistante | Ne permet pas le suivi individuel de l'emplacement et de l'archivage de chaque exemplaire |

@@ -248,6 +248,11 @@
         <form id="bottle-form" novalidate>
           <input type="hidden" id="form-id">
 
+          <div class="form-group" id="f-quantity-group">
+            <label for="f-quantity">Nombre de bouteilles</label>
+            <input type="number" id="f-quantity" class="form-control" min="1" step="1" value="1" inputmode="numeric">
+          </div>
+
           <!-- Section : Informations principales -->
           <div class="form-section">
             <h3>Informations principales</h3>
@@ -331,11 +336,12 @@
                 id="f-slot-picker"
                 class="slot-picker"
                 role="group"
-                aria-label="Plan de la localisation — cliquez sur un emplacement pour le sélectionner"
+                aria-label="Emplacements de la localisation"
               ></div>
               <input type="hidden" id="f-slot">
             </div>
-            <div class="form-row form-row--3">
+            <div id="f-placements-summary" class="hidden" role="status" aria-live="polite"></div>
+            <div class="form-row form-row--3" id="f-coordinates-group">
               <div class="form-group">
                 <label for="f-rang">Rang</label>
                 <input type="number" id="f-rang" class="form-control" min="1" step="1" placeholder="ex: 3">
@@ -356,11 +362,11 @@
                 <input type="date" id="f-date-achat" class="form-control">
               </div>
               <div class="form-group">
-                <label for="f-prix-achat">Prix d'achat (€)</label>
+                <label for="f-prix-achat">Prix d'achat par bouteille (€)</label>
                 <input type="number" id="f-prix-achat" class="form-control" step="0.01" min="0" placeholder="0.00">
               </div>
               <div class="form-group">
-                <label for="f-valeur">Valeur estimée (€)</label>
+                <label for="f-valeur">Valeur estimée par bouteille (€)</label>
                 <input type="number" id="f-valeur" class="form-control" step="0.01" min="0" placeholder="0.00">
               </div>
             </div>

@@ -28,6 +28,8 @@ Consultez votre collection, gérez les emplacements, suivez vos acquisitions.
 
 **Interface admin** (`admin.html`) (authentification par mot de passe)
 - CRUD complet : ajout, modification, archivage (avec commentaire), restauration
+- **Ajout en lot** : quantité par défaut de 1 ; pour plusieurs bouteilles, sélection d'autant d'emplacements distincts sur les plans, y compris dans plusieurs localisations. Une fiche est créée par bouteille avec les mêmes informations et des prix unitaires. Les coordonnées manuelles rang/colonne restent réservées à l'ajout unitaire.
+- **Reprise d'un lot** : en cas d'échec partiel, seuls les ajouts non confirmés restent dans le formulaire. Après une coupure réseau, vérifier la cave avant de réessayer : un enregistrement peut avoir abouti sans que sa confirmation ait été reçue.
 - **Notation** : attribution d'une note de 1 à 3 étoiles via sélecteur interactif dans le formulaire
 - Pré-remplissage des fiches depuis **OpenFoodFacts** (recherche par nom ou code-barres)
 - **Gestion des localisations** : espaces de stockage nommés (cave, armoire à vins…) avec description

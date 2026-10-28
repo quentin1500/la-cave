@@ -1,0 +1,10 @@
+Je veux pouvoir ajouter à ma cave des bouteilles que j'achète en lot. 
+Lorsque que j'ajoute des bouteilles, dans le formulaire, je dois pouvoir selectionner la quantité.
+Tous les attributs remplis ensuite s'appliquent à chacune des bouteilles, excepté l'emplacement. Celui-ci doit être défini pour chaque bouteille. Je suggère de pouvoir cliquer sur plusieurs emplacements (autant que de bouteille à ajouter) pour les assigner aux bouteilles correspondantes. Ainsi, une bouteille est créé dans chaque emplacement, et toutes les informations saisies sont appliquées à chacune d'elles.
+
+Par défaut, un ajout sans préciser le nombre de bouteilles à ajouter crée une seule bouteille.
+
+Pose des questions si besoin, pour compléter la demande, détailler les besoins, clarifier, faire des choix, etc.
+
+==
+

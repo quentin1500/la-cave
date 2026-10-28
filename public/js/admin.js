@@ -14,6 +14,9 @@ const AdminApp = (() => {
   let _localisations      = [];
   let _editingLocalisationId = null;
   let _layoutsCache       = {}; // { [localisationId]: slots[] }
+  let _selectedPlacements = [];
+  let _savingBottles = false;
+  let _slotLoadVersion = 0;
 
   // ── Initialisation ────────────────────────────────────────────────────────
 
@@ -28,6 +31,17 @@ const AdminApp = (() => {
 
     // Formulaire d'ajout / édition de bouteille
     document.getElementById('bottle-form').addEventListener('submit', handleSubmit);
+    document.getElementById('f-quantity').addEventListener('input', () => {
+      const quantity = Number(document.getElementById('f-quantity').value || 1);
+      if (Number.isSafeInteger(quantity) && quantity > 0) {
+        _selectedPlacements = _selectedPlacements.slice(0, quantity);
+        if (quantity === 1 && _selectedPlacements.length) {
+          document.getElementById('f-localisation').value = _selectedPlacements[0].localisation;
+        }
+      }
+      updateQuantity_();
+      loadSlotsForLocalisation_(document.getElementById('f-localisation').value);
+    });
 
     // Fermeture du modal formulaire via le fond
     document.getElementById('form-backdrop').addEventListener('click', hideForm);
@@ -46,6 +60,10 @@ const AdminApp = (() => {
 
     // Slot dynamique selon la localisation choisie
     document.getElementById('f-localisation').addEventListener('change', () => {
+      if (Number(document.getElementById('f-quantity').value || 1) === 1) {
+        _selectedPlacements = [];
+      }
+      updateQuantity_();
       loadSlotsForLocalisation_(document.getElementById('f-localisation').value);
     });
 
@@ -141,31 +159,69 @@ const AdminApp = (() => {
 
   async function handleSubmit(e) {
     e.preventDefault();
+    if (_savingBottles) return;
 
     const submitBtn = document.getElementById('form-submit-btn');
+    const form = document.getElementById('bottle-form');
+    const controls = Array.from(form.querySelectorAll('input, select, textarea, button'));
+    const disabledStates = controls.map(control => control.disabled);
+    const id = document.getElementById('form-id').value.trim();
+    const quantity = id ? 1 : Number(document.getElementById('f-quantity').value || 1);
+    if (!Number.isSafeInteger(quantity) || quantity < 1) {
+      notify_('La quantité doit être un entier supérieur ou égal à 1.', 'error');
+      return;
+    }
+    if (!id && quantity > 1 && _selectedPlacements.length !== quantity) {
+      notify_(`Sélectionnez ${quantity} emplacements pour les ${quantity} bouteilles.`, 'error');
+      return;
+    }
+    const bottle = collectFormData_();
+    const placements = _selectedPlacements.map(placement => ({ ...placement }));
+    let created = 0;
+    _savingBottles = true;
+    controls.forEach(control => { control.disabled = true; });
     submitBtn.disabled    = true;
     submitBtn.textContent = 'Enregistrement…';
 
     try {
-      const id     = document.getElementById('form-id').value.trim();
-      const bottle = collectFormData_();
-
       if (id) {
         await SheetsAPI.updateBottle(id, bottle);
         notify_('Bouteille mise à jour avec succès.', 'success');
       } else {
-        await SheetsAPI.addBottle(bottle);
-        notify_('Bouteille ajoutée avec succès.', 'success');
+        for (let index = 0; index < quantity; index++) {
+          const placement = placements[index];
+          const item = quantity > 1
+            ? { ...bottle, localisation: placement.localisation, slot_id: placement.slot_id, rang: '', colonne: '' }
+            : { ...bottle };
+          await SheetsAPI.addBottle(item);
+          allBottles = [...allBottles, item];
+          created++;
+          submitBtn.textContent = `Enregistrement… ${created}/${quantity}`;
+        }
+        notify_(quantity === 1 ? 'Bouteille ajoutée avec succès.' : `${quantity} bouteilles ajoutées avec succès.`, 'success');
       }
 
+      _savingBottles = false;
       hideForm();
       await loadBottles();
     } catch (err) {
       console.error('Erreur lors de l\'enregistrement :', err);
-      notify_(`Erreur : ${err.message}`, 'error');
+      if (created > 0) {
+        _selectedPlacements = placements.slice(created);
+        document.getElementById('f-quantity').value = String(quantity - created);
+        const remaining = _selectedPlacements[0];
+        if (remaining) document.getElementById('f-localisation').value = remaining.localisation;
+        updateQuantity_();
+        await loadSlotsForLocalisation_(document.getElementById('f-localisation').value);
+        await loadBottles();
+      }
+      notify_(created > 0
+        ? `${created} bouteille(s) ajoutée(s). Les ${quantity - created} restantes sont conservées dans le formulaire. Vérifiez la cave avant de réessayer si la connexion a été interrompue.`
+        : 'Enregistrement non confirmé. Vérifiez la cave avant de réessayer si la connexion a été interrompue.', 'error');
     } finally {
-      submitBtn.disabled    = false;
-      submitBtn.textContent = 'Enregistrer';
+      _savingBottles = false;
+      controls.forEach((control, index) => { control.disabled = disabledStates[index]; });
+      updateQuantity_();
     }
   }
 
@@ -562,9 +618,15 @@ const AdminApp = (() => {
    * @param {string} [currentSlotId] - Slot à pré-sélectionner
    */
   async function loadSlotsForLocalisation_(locId, currentSlotId) {
+    const version = ++_slotLoadVersion;
     const slotGroup  = document.getElementById('f-slot-group');
     const slotHidden = document.getElementById('f-slot');
     if (!slotGroup) return;
+    slotHidden.value = '';
+    document.getElementById('f-slot-picker').innerHTML = '';
+    if (currentSlotId) {
+      _selectedPlacements = [{ localisation: locId, slot_id: currentSlotId }];
+    }
 
     if (!locId) {
       slotGroup.classList.add('hidden');
@@ -588,23 +650,25 @@ const AdminApp = (() => {
       }
     }
 
-    renderSlotPicker_(slots, currentSlotId);
+    if (version !== _slotLoadVersion) return;
+    renderSlotPicker_(slots);
     slotGroup.classList.remove('hidden');
   }
 
   /**
    * Affiche le plan de cave (slots positionnels) dans le sélecteur visuel.
-   * Un clic sur un slot le sélectionne (re-clic = désélection).
-   * @param {Array}  slots           - Liste de slots {id, x, y, size, label}
-   * @param {string} [currentSlotId] - Slot pré-sélectionné
+  * Un clic sur un slot bascule sa sélection, dans la limite de la quantité.
+  * @param {Array} slots - Liste de slots {id, x, y, size, label}
    */
-  function renderSlotPicker_(slots, currentSlotId) {
+  function renderSlotPicker_(slots) {
     const picker = document.getElementById('f-slot-picker');
     const hidden = document.getElementById('f-slot');
     if (!picker || !hidden) return;
 
     picker.innerHTML = '';
-    hidden.value = currentSlotId || '';
+    const locId = document.getElementById('f-localisation').value;
+    const selected = _selectedPlacements.filter(placement => placement.localisation === locId);
+    hidden.value = selected.length ? selected[0].slot_id : '';
 
     if (!slots || slots.length === 0) {
       picker.innerHTML = '<p class="slot-picker__empty">Aucun emplacement défini dans le plan. Éditez le plan depuis « Gérer les localisations » pour en ajouter.</p>';
@@ -628,7 +692,8 @@ const AdminApp = (() => {
     slots.forEach((s, idx) => {
       const el = document.createElement('div');
       el.className = 'slot-picker__slot';
-      if (s.id === (currentSlotId || '')) el.classList.add('slot-picker__slot--selected');
+      const isSelected = selected.some(placement => placement.slot_id === s.id);
+      if (isSelected) el.classList.add('slot-picker__slot--selected');
       el.style.left   = (s.x || 0) + 'px';
       el.style.top    = (s.y || 0) + 'px';
       el.style.width  = (s.size || 60) + 'px';
@@ -637,22 +702,31 @@ const AdminApp = (() => {
       el.textContent    = s.label || String(idx + 1);
       el.setAttribute('role', 'button');
       el.setAttribute('tabindex', '0');
-      el.setAttribute('aria-pressed', String(s.id === (currentSlotId || '')));
-      el.setAttribute('aria-label', `Emplacement ${escapeHtml_(s.label || String(idx + 1))}`);
+      el.setAttribute('aria-pressed', String(isSelected));
+      el.setAttribute('aria-label', `Emplacement ${s.label || String(idx + 1)}`);
 
       const toggle = () => {
-        const alreadySelected = hidden.value === s.id;
-        picker.querySelectorAll('.slot-picker__slot').forEach(n => {
-          n.classList.remove('slot-picker__slot--selected');
-          n.setAttribute('aria-pressed', 'false');
-        });
-        if (alreadySelected) {
-          hidden.value = '';
+        if (_savingBottles) return;
+        const quantity = Number(document.getElementById('f-quantity').value || 1);
+        if (!Number.isSafeInteger(quantity) || quantity < 1) return;
+        const index = _selectedPlacements.findIndex(placement => placement.localisation === locId && placement.slot_id === s.id);
+        if (index !== -1) {
+          _selectedPlacements.splice(index, 1);
         } else {
-          el.classList.add('slot-picker__slot--selected');
-          el.setAttribute('aria-pressed', 'true');
-          hidden.value = s.id;
+          if (quantity === 1) _selectedPlacements = [];
+          if (_selectedPlacements.length >= quantity) {
+            notify_(`Les ${quantity} emplacements sont déjà sélectionnés.`, 'error');
+            return;
+          }
+          _selectedPlacements.push({ localisation: locId, slot_id: s.id });
         }
+        picker.querySelectorAll('.slot-picker__slot').forEach(node => {
+          const active = _selectedPlacements.some(placement => placement.localisation === locId && placement.slot_id === node.dataset.slotId);
+          node.classList.toggle('slot-picker__slot--selected', active);
+          node.setAttribute('aria-pressed', String(active));
+        });
+        hidden.value = _selectedPlacements.find(placement => placement.localisation === locId)?.slot_id || '';
+        updateQuantity_();
       };
 
       el.addEventListener('click', toggle);
@@ -666,9 +740,35 @@ const AdminApp = (() => {
     picker.appendChild(canvas);
   }
 
+  function updateQuantity_() {
+    const editing = Boolean(document.getElementById('form-id').value);
+    const quantity = editing ? 1 : Number(document.getElementById('f-quantity').value || 1);
+    document.getElementById('f-quantity-group').classList.toggle('hidden', editing);
+    document.getElementById('f-coordinates-group').classList.toggle('hidden', quantity > 1);
+    if (quantity > 1) {
+      document.getElementById('f-rang').value = '';
+      document.getElementById('f-colonne').value = '';
+    }
+    const summary = document.getElementById('f-placements-summary');
+    summary.classList.toggle('hidden', quantity <= 1);
+    const labels = _selectedPlacements.map(placement => {
+      const loc = _localisations.find(item => item.id === placement.localisation);
+      const slots = _layoutsCache[placement.localisation] || [];
+      const slot = slots.find(item => item.id === placement.slot_id);
+      return `${loc ? loc.nom : placement.localisation} : ${slot ? slot.label || String(slots.indexOf(slot) + 1) : placement.slot_id}`;
+    });
+    summary.textContent = `${_selectedPlacements.length} / ${quantity} emplacements sélectionnés${labels.length ? ' : ' + labels.join(' ; ') : ''}`;
+    if (!_savingBottles) {
+      document.getElementById('form-submit-btn').textContent = editing
+        ? 'Enregistrer les modifications'
+        : quantity > 1 ? `Ajouter les ${quantity} bouteilles` : 'Ajouter la bouteille';
+    }
+  }
+
   // ── Formulaire ────────────────────────────────────────────────────────────
 
   function showForm(bottle) {
+    if (_savingBottles) return;
     const modal    = document.getElementById('form-modal');
     const titleEl  = document.getElementById('form-modal-title');
     const submitEl = document.getElementById('form-submit-btn');
@@ -689,18 +789,22 @@ const AdminApp = (() => {
       submitEl.textContent = 'Ajouter la bouteille';
     }
 
+    updateQuantity_();
     modal.classList.remove('hidden');
     document.body.style.overflow = 'hidden';
     document.getElementById('form-panel').focus();
   }
 
   function hideForm() {
+    if (_savingBottles) return;
     document.getElementById('form-modal').classList.add('hidden');
     document.body.style.overflow = '';
     resetForm_();
   }
 
   function resetForm_() {
+    _slotLoadVersion++;
+    _selectedPlacements = [];
     document.getElementById('bottle-form').reset();
     document.getElementById('form-id').value = '';
     document.getElementById('off-results').innerHTML = '';
@@ -713,6 +817,7 @@ const AdminApp = (() => {
     if (slotHidden) slotHidden.value = '';
     const slotPicker = document.getElementById('f-slot-picker');
     if (slotPicker) slotPicker.innerHTML = '';
+    updateQuantity_();
     setStarPicker_(0);
   }
 
